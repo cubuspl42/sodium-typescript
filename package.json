@@ -37,7 +37,8 @@
     "rollup:build:umd": "cross-env NODE_ENV=production rollup -c rollup.config.umd.js",
     "rollup:watch": "cross-env NODE_ENV=production rollup -c -w",
     "test": "jest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "watch": "tsc --watch --noEmit --project './tsconfig.json'"
   },
   "jest": {
     "transform": {
@@ -54,7 +55,7 @@
   },
   "devDependencies": {
     "@types/jest": "23.3.1",
-    "@types/node": "^10.9.4",
+    "@types/node": "^10.17.17",
     "cross-env": "^5.2.0",
     "fantasy-laws": "^1.1.0",
     "jest": "23.5.0",

@@ -46,7 +46,7 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     private readonly f: (a: A, b: B) => C;
 
     process(): void {
-        const a = this.stream.vertex.firedEvent;
+        const a = this.stream.vertex.newValue;
         if (!a) return;
         const b = this.cell.vertex.oldValue;
         const c = this.f(a, b);

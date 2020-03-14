@@ -103,7 +103,7 @@ export class Vertex_ {
         if (verbose)
             console.log("deregister " + this.descr() + " => " + target.descr());
         this.decrement(target);
-        Transaction._collectCyclesAtEnd();
+        // Transaction._collectCyclesAtEnd();
     }
     private incRefCount(target: Vertex_): boolean {
         let anyChanged: boolean = false;
@@ -370,14 +370,33 @@ export class Vertex_ {
 }
 
 export abstract class Vertex {
-    readonly dependents = new Set<Vertex>();
+    readonly dependents?: Set<Vertex>;
 
     visited = false;
 
+    abstract process(): void;
+
+    reset(): void {
+        this.visited = false;
+    }
+}
+
+export class StreamVertex<A> extends Vertex {
+    readonly dependents = new Set<Vertex>();
+
+    newValue?: A;
+
+    visited = false;
+
+    fire(a: A) {
+        this.newValue = a;
+    }
+
     process(): void { }
 
-    reset(): void { 
+    reset(): void {
         this.visited = false;
+        this.newValue = undefined;
     }
 
     addDependent(vertex: Vertex): void {
@@ -386,36 +405,17 @@ export abstract class Vertex {
 }
 
 
-export class CellVertex<A> extends Vertex {
+export class CellVertex<A> extends StreamVertex<A> {
     oldValue: A;
-    newValue?: A;
 
     constructor(initValue: A) {
         super();
         this.oldValue = initValue;
     }
 
-    update(a: A) {
-        this.newValue = a;
-    }
-
     reset() {
-        super.reset();
         this.oldValue = this.newValue || this.oldValue;
-        this.newValue = undefined;
-    }
-}
-
-export class StreamVertex<A> extends Vertex {
-    firedEvent?: A;
-
-    fire(a: A) {
-        this.firedEvent = a;
-    }
-
-    reset() {
         super.reset();
-        this.firedEvent = undefined;
     }
 }
 
@@ -437,7 +437,7 @@ export class ListenerVertex<A> extends Vertex {
     }
 
     process() {
-        const a = this.source.firedEvent;
+        const a = this.source.newValue;
         if (!!a) {
             this.h(a);
         }
