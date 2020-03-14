@@ -1,6 +1,5 @@
 
 import {
-  lambda1,
   StreamSink,
   StreamLoop,
   CellSink,

@@ -1,20 +1,6 @@
-import {
-    Lambda1, Lambda1_deps, Lambda1_toFunction,
-    Lambda2, Lambda2_deps, Lambda2_toFunction
-} from "./Lambda";
 import { Stream } from "./Stream";
 import { Transaction } from "./Transaction";
-import { Vertex_, StreamVertex } from './Vertex';
-
-// class StreamSinkVertex<A> extends StreamVertex<A> {
-//     constructor(
-//     ) {
-//         super()
-//     }
-
-//     process(): void {
-//     }
-// }
+import { StreamVertex } from './Vertex';
 
 /**
  * A stream that allows values to be pushed into it, acting as an interface between the
@@ -22,7 +8,7 @@ import { Vertex_, StreamVertex } from './Vertex';
  * should downcast to {@link Stream}.
  */
 export class StreamSink<A> extends Stream<A> {
-    constructor(f?: ((l: A, r: A) => A) | Lambda2<A, A, A>) {
+    constructor(f?: (l: A, r: A) => A) {
         super(new StreamVertex());
     }
 
@@ -32,11 +18,5 @@ export class StreamSink<A> extends Stream<A> {
             vertex.fire(a);
             t.addRoot(vertex);
         });
-    }
-
-    listen_(target: Vertex_,
-        h: (a: A) => void,
-        suppressEarlierFirings: boolean): () => void {
-        return () => { };
     }
 }

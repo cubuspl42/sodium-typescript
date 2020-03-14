@@ -1,5 +1,4 @@
 import {
-  lambda1,
   Cell,
   CellSink,
   Stream,
@@ -30,8 +29,6 @@ test('should test constantCell', (done) => {
 });
 
 test('cellLiftArray', () => {
-  return;
-
   const out: number[][] = [];
   const ss1 = new StreamSink<number>();
   const cs = new CellSink<number>(1);
@@ -41,7 +38,7 @@ test('cellLiftArray', () => {
   const c =
     Cell.switchC(
       cs
-        .map(lambda1(a => {
+        .map(a => {
           switch (a) {
             default:
             case 1:
@@ -51,7 +48,7 @@ test('cellLiftArray', () => {
             case 3:
               return [c3, c1];
           }
-        }, [c1, c2, c3]))
+        })
         .map(cas => Cell.liftArray(cas))
     );
   let kill = c.listen(x => out.push(x));
