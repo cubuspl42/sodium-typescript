@@ -1,13 +1,5 @@
-import {
-    Lambda1, Lambda1_deps, Lambda1_toFunction,
-    Lambda2, Lambda2_deps, Lambda2_toFunction,
-    Lambda3, Lambda3_deps, Lambda3_toFunction,
-    Lambda4, Lambda4_deps, Lambda4_toFunction,
-    Lambda5, Lambda5_deps, Lambda5_toFunction,
-    Lambda6, Lambda6_deps, Lambda6_toFunction,
-    toSources, lambda1
-} from "./Lambda";
-import { Source, Vertex_, Vertex, CellVertex, ListenerVertex } from "./Vertex";
+
+import { Vertex, CellVertex, ListenerVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Lazy } from "./Lazy";
 import { Listener } from "./Listener";
@@ -98,7 +90,7 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     process(): void {
         const na = this.ca.newValue;
         const nb = this.cb.newValue;
-        
+
         if (na || nb) {
             const a = na || this.ca.oldValue;
             const b = nb || this.cb.oldValue;
@@ -124,7 +116,7 @@ export class Cell<A> {
     protected setStream(str: Stream<A>) {
     }
 
-    getVertex__(): Vertex_ {
+    getVertex__(): Vertex {
         // return this.vertex;
         throw new Error();
     }
@@ -183,8 +175,7 @@ export class Cell<A> {
 	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
 	 */
     lift3<B, C, D>(b: Cell<B>, c: Cell<C>,
-        fn0: ((a: A, b: B, c: C) => D) |
-            Lambda3<A, B, C, D>): Cell<D> {
+        fn0: (a: A, b: B, c: C) => D): Cell<D> {
         throw new Error();
     }
 
@@ -194,8 +185,7 @@ export class Cell<A> {
 	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
 	 */
     lift4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
-        fn0: ((a: A, b: B, c: C, d: D) => E) |
-            Lambda4<A, B, C, D, E>): Cell<E> {
+        fn0: (a: A, b: B, c: C, d: D) => E): Cell<E> {
         throw new Error();
     }
 
@@ -205,8 +195,7 @@ export class Cell<A> {
 	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
 	 */
     lift5<B, C, D, E, F>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>,
-        fn0: ((a: A, b: B, c: C, d: D, e: E) => F) |
-            Lambda5<A, B, C, D, E, F>): Cell<F> {
+        fn0: (a: A, b: B, c: C, d: D, e: E) => F): Cell<F> {
         throw new Error();
     }
 
@@ -216,8 +205,7 @@ export class Cell<A> {
 	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
 	 */
     lift6<B, C, D, E, F, G>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>, f: Cell<F>,
-        fn0: ((a: A, b: B, c: C, d: D, e: E, f: F) => G) |
-            Lambda6<A, B, C, D, E, F, G>): Cell<G> {
+        fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G): Cell<G> {
         throw new Error();
     }
 
@@ -244,7 +232,7 @@ export class Cell<A> {
 	 * Apply a value inside a cell to a function inside a cell. This is the
 	 * primitive for all function lifting.
 	 */
-    static apply<A, B>(cf: Cell<(a: A) => B>, ca: Cell<A>, sources?: Source[]): Cell<B> {
+    static apply<A, B>(cf: Cell<(a: A) => B>, ca: Cell<A>): Cell<B> {
         return new Cell(undefined, undefined, new CellApplyVertex(cf.vertex, ca.vertex));
     }
 

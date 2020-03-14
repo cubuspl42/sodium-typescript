@@ -125,6 +125,8 @@ test("should test lift", (done) => {
 });
 
 test("should test liftGlitch", (done) => {
+  console.log(">>> liftGlitch");
+
   const a = new CellSink(1),
     a3 = a.map(x => x * 3),
     a5 = a.map(x => x * 5),
@@ -140,7 +142,7 @@ test("should test liftGlitch", (done) => {
   a.send(2);
   kill();
 
-  expect(["3 5", "6 10"]).toEqual(out);
+  expect(out).toEqual(["3 5", "6 10"]);
 });
 
 test("should test liftFromSimultaneous", (done) => {
