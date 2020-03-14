@@ -99,6 +99,25 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     }
 }
 
+class CellLiftArrayVertex<A> extends CellVertex<A[]> {
+    constructor(ca: Cell<A>[]) {
+        super(ca.map(a => a.vertex.oldValue));
+
+        this.caa = ca;
+
+        ca.forEach((a) => a.vertex.addDependent(this));
+    }
+
+    private readonly caa: Cell<A>[];
+
+    process(): void {
+        if (this.caa.some((ca) => !!ca.vertex.newValue)) {
+            const na = this.caa.map((ca) => ca.vertex.newValue || ca.vertex.oldValue);
+            this.fire(na);
+        }
+    }
+}
+
 export class Cell<A> {
     // protected value: A;
 
@@ -219,24 +238,8 @@ export class Cell<A> {
     /**
      * Lift an array of cells into a cell of an array.
      */
-    public static liftArray<A>(ca : Cell<A>[]) : Cell<A[]> {
-        return Cell._liftArray(ca, 0, ca.length);
-    }
-
-    private static _liftArray<A>(ca : Cell<A>[], fromInc: number, toExc: number) : Cell<A[]> {
-        if (toExc - fromInc == 0) {
-            return new Cell<A[]>([]);
-        } else if (toExc - fromInc == 1) {
-            return ca[fromInc].map(a => [a]);
-        } else {
-            let pivot = Math.floor((fromInc + toExc) / 2);
-            // the thunk boxing/unboxing here is a performance hack for lift when there are simutaneous changing cells.
-            return Cell._liftArray(ca, fromInc, pivot).lift(
-                    Cell._liftArray(ca, pivot, toExc),
-                    (array1, array2) => () => array1.concat(array2)
-                )
-                .map(x => x());
-        }
+    public static liftArray<A>(ca: Cell<A>[]): Cell<A[]> {
+        return new Cell(undefined, undefined, new CellLiftArrayVertex(ca));
     }
 
 	/**
