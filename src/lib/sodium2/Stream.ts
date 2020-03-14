@@ -14,7 +14,6 @@ import { Cell } from "./Cell";
 import { Listener } from "./Listener";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
-import { LazyCell } from "./LazyCell";
 import * as Z from "sanctuary-type-classes";
 
 class MergeState<A> {
