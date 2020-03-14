@@ -19,17 +19,12 @@ export class CellLoop<A> extends LazyCell<A> {
      * or {@link Transaction#runVoid(Runnable)}.
      */
     loop(a_out : Cell<A>) : void {
-        const me = this;
-        Transaction.run(() => {
-            (<StreamLoop<A>>me.getStream__()).loop(a_out.getStream__());
-            me.lazyInitValue = a_out.sampleLazy();
-        });
+        throw new Error();
+
     }
 
     sampleNoTrans__() : A
     {
-        if (!(<StreamLoop<A>>this.getStream__()).assigned__)
-            throw new Error("CellLoop sampled before it was looped");
-        return super.sampleNoTrans__();
+        throw new Error();
     }
 }
