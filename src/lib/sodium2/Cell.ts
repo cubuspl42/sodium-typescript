@@ -7,11 +7,11 @@ import {
     Lambda6, Lambda6_deps, Lambda6_toFunction,
     toSources, lambda1
 } from "./Lambda";
-import { Source, Vertex } from "./Vertex";
+import { Source, Vertex_, Vertex, CellVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Lazy } from "./Lazy";
 import { Listener } from "./Listener";
-import { Stream, StreamWithSend } from "./Stream";
+import { Stream } from "./Stream";
 import { Operational } from "./Operational";
 import { Tuple2 } from "./Tuple2";
 
@@ -33,21 +33,16 @@ class ApplyState<A, B> {
 }
 
 export class Cell<A> {
-    private str: Stream<A>;
-    protected value: A;
-    protected valueUpdate: A;
-    private cleanup: () => void;
-    protected lazyInitValue: Lazy<A>;  // Used by LazyCell
-    private vertex: Vertex;
+    // protected value: A;
 
-    constructor(initValue: A, str?: Stream<A>) {
-        // this.value = initValue;
-        // if (!str) {
-        //     this.str = new Stream<A>();
-        //     this.vertex = new Vertex("ConstCell", 0, []);
-        // }
-        // else
-        //     Transaction.run(() => this.setStream(str));
+    vertex: CellVertex<A>;
+
+    constructor(initValue?: A, str?: Stream<A>, vertex?: CellVertex<A>) {
+        if (!!vertex) {
+            this.vertex = vertex;
+        } else {
+            this.vertex = new CellVertex<A>(initValue!);
+        }
     }
 
     protected setStream(str: Stream<A>) {
@@ -83,7 +78,7 @@ export class Cell<A> {
         // });
     }
 
-    getVertex__(): Vertex {
+    getVertex__(): Vertex_ {
         // return this.vertex;
         throw new Error();
     }
@@ -260,7 +255,6 @@ export class Cell<A> {
 	 */
     static switchC<A>(cca: Cell<Cell<A>>): Cell<A> {
         throw new Error();
-
     }
 
 	/**
@@ -300,6 +294,7 @@ export class Cell<A> {
 	 *   your own primitives.
      */
     listen(h: (a: A) => void): () => void {
-        throw new Error();
+        h(this.vertex.oldValue);
+        return () => {};
     }
 }

@@ -1,5 +1,7 @@
-import { Lambda1, Lambda1_deps, Lambda1_toFunction,
-         Lambda2, Lambda2_deps, Lambda2_toFunction } from "./Lambda";
+import {
+    Lambda1, Lambda1_deps, Lambda1_toFunction,
+    Lambda2, Lambda2_deps, Lambda2_toFunction
+} from "./Lambda";
 import { Cell } from "./Cell";
 import { StreamSink } from "./StreamSink";
 import { Transaction } from "./Transaction";
@@ -16,9 +18,8 @@ export class CellSink<A> extends Cell<A> {
      *
      * If the function is not supplied, then an exception will be thrown in this case.
      */
-    constructor(initValue : A, f? : ((l : A, r : A) => A) | Lambda2<A, A, A>) {
-        super(initValue, new StreamSink<A>(f));
-        throw new Error();
+    constructor(initValue: A, f?: ((l: A, r: A) => A) | Lambda2<A, A, A>) {
+        super(initValue, undefined);
     }
 
     /**
@@ -28,7 +29,11 @@ export class CellSink<A> extends Cell<A> {
      * You are not meant to use this to define your own primitives.
      * @param a Value to push into the cell.
      */
-    send(a : A) : void {
-        throw new Error();
+    send(a: A): void {
+        Transaction.run((t) => {
+            const vertex = this.vertex;
+            vertex.update(a);
+            t.addRoot(vertex);
+        });
     }
 }

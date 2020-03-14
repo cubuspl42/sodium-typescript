@@ -34,7 +34,7 @@ test('should test snapshot', (done) => {
   s.send(300);
   kill();
 
-  expect(["100 0", "200 2", "300 1"]).toEqual(out);
+  expect(out).toEqual(["100 0", "200 2", "300 1"]);
 });
 
 test('should test values', (done) => {
@@ -51,7 +51,7 @@ test('should test values', (done) => {
   c.send(7);
   kill();
 
-  expect([9, 2, 7]).toEqual(out);
+  expect(out).toEqual([9, 2, 7]);
 });
 
 test("should test mapC", (done) => {
@@ -72,15 +72,15 @@ test("should test mapC", (done) => {
 
 test("should throw an error on mapCLateListen", () => {
   const c = new CellSink<number>(6),
-  out: string[] = [],
-  cm = c.map(a => "" + a);
+    out: string[] = [],
+    cm = c.map(a => "" + a);
 
   try {
     c.send(2);
     const kill = cm.listen(a => out.push(a));
     c.send(8);
     kill();
-  } catch(e) {
+  } catch (e) {
 
     expect(e.message).toBe('send() was invoked before listeners were registered');
   }
