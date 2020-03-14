@@ -17,7 +17,8 @@ export class CellSink<A> extends Cell<A> {
      * If the function is not supplied, then an exception will be thrown in this case.
      */
     constructor(initValue : A, f? : ((l : A, r : A) => A) | Lambda2<A, A, A>) {
-    	super(initValue, new StreamSink<A>(f));
+        super(initValue, new StreamSink<A>(f));
+        throw new Error();
     }
 
     /**
@@ -28,6 +29,6 @@ export class CellSink<A> extends Cell<A> {
      * @param a Value to push into the cell.
      */
     send(a : A) : void {
-        (<StreamSink<A>>this.getStream__()).send(a);
+        throw new Error();
     }
 }
