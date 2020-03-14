@@ -7,9 +7,8 @@ import {
     Lambda6, Lambda6_deps, Lambda6_toFunction,
     toSources
 } from "./Lambda";
-import { Source, Vertex } from "./Vertex";
+import { Source, Vertex_, Vertex, StreamVertex, ListenerVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
-import { CoalesceHandler } from "./CoalesceHandler";
 import { Cell } from "./Cell";
 //import { StreamLoop } from "./StreamLoop";
 import { Listener } from "./Listener";
@@ -26,18 +25,47 @@ class MergeState<A> {
     right_present: boolean = false;
 }
 
+class SnapshotVertex<A, B, C> extends StreamVertex<C> {
+    constructor(
+        stream: Stream<A>,
+        cell: Cell<B>,
+        f: (a: A, b: B) => C,
+    ) {
+        super();
+
+        this.f = f;
+        this.stream = stream;
+        this.cell = cell;
+
+        stream.vertex.addDependent(this);
+        cell.vertex.addDependent(this);
+    }
+
+    private readonly stream: Stream<A>;
+    private readonly cell: Cell<B>;
+    private readonly f: (a: A, b: B) => C;
+
+    process(): void {
+        const a = this.stream.vertex.firedEvent;
+        if (!a) return;
+        const b = this.cell.vertex.oldValue;
+        const c = this.f(a, b);
+        this.fire(c);
+    }
+}
+
 export class Stream<A> {
-    constructor(vertex?: Vertex) {
+    constructor(vertex: StreamVertex<A>) {
+        this.vertex = vertex;
+    }
+
+    getVertex__(): Vertex_ {
         throw new Error();
     }
 
-    getVertex__(): Vertex {
-        throw new Error();
-    }
+    vertex: StreamVertex<A>;
 
-    protected vertex: Vertex;
     protected listeners: Array<Listener<A>> = [];
-    protected firings: A[] = [];
 
     /**
      * Transform the stream's event values according to the supplied function, so the returned
@@ -49,7 +77,6 @@ export class Stream<A> {
      */
     map<B>(f: ((a: A) => B) | Lambda1<A, B>): Stream<B> {
         throw new Error();
-
     }
 
     /**
@@ -123,7 +150,7 @@ export class Stream<A> {
 	 * at the time of the event firing, ignoring the stream's value.
 	 */
     snapshot1<B>(c: Cell<B>): Stream<B> {
-        throw new Error();
+        throw new Error("snapshot1");
     }
 
 	/**
@@ -136,8 +163,8 @@ export class Stream<A> {
      * always sees the value of a cell as it was before any state changes from the current
      * transaction.
      */
-    snapshot<B, C>(b: Cell<B>, f_: ((a: A, b: B) => C) | Lambda2<A, B, C>): Stream<C> {
-        throw new Error();
+    snapshot<B, C>(b: Cell<B>, f: (a: A, b: B) => C): Stream<C> {
+        return new Stream(new SnapshotVertex(this, b, f));
     }
 
 	/**
@@ -270,11 +297,11 @@ export class Stream<A> {
     }
 
     listen(h: (a: A) => void): () => void {
-        throw new Error();
-
+        new ListenerVertex(this.vertex, h);
+        return () => {};
     }
 
-    listen_(target: Vertex,
+    listen_(target: Vertex_,
         h: (a: A) => void,
         suppressEarlierFirings: boolean): () => void {
         throw new Error();
@@ -289,29 +316,13 @@ export class Stream<A> {
      */
 }
 
-export class StreamWithSend<A> extends Stream<A> {
-    constructor(vertex?: Vertex) {
-        super(vertex);
-    }
-
-    setVertex__(vertex: Vertex) {  // TO DO figure out how to hide this
-        throw new Error();
-    }
-
-    send_(a: A): void {
-        throw new Error();
-
-    }
-}
-
 /**
  * A forward reference for a {@link Stream} equivalent to the Stream that is referenced.
  */
-export class StreamLoop<A> extends StreamWithSend<A> {
+export class StreamLoop<A> {
     assigned__: boolean = false;  // to do: Figure out how to hide this
 
     constructor() {
-        super();
         throw new Error();
     }
 

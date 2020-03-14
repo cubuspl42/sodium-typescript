@@ -1,89 +1,58 @@
 import { Vertex } from './Vertex';
-import * as Collections from 'typescript-collections';
-
-export class Entry {
-  constructor(rank: Vertex, action: () => void) {
-    this.rank = rank;
-    this.action = action;
-    this.seq = Entry.nextSeq++;
-  }
-
-  private static nextSeq: number = 0;
-  rank: Vertex;
-  action: () => void;
-  seq: number;
-
-  toString(): string {
-    return this.seq.toString();
-  }
-}
 
 export class Transaction {
-  public static currentTransaction: Transaction = null;
-  private static onStartHooks: (() => void)[] = [];
-  private static runningOnStartHooks: boolean = false;
+  private roots = new Set<Vertex>();
 
   constructor() { }
 
-  inCallback: number = 0;
-  private toRegen: boolean = false;
-
-  requestRegen(): void {
-    this.toRegen = true;
-  }
-
-  prioritized(target: Vertex, action: () => void): void {
-    throw new Error();
-
-  }
-
-  sample(h: () => void): void {
-    throw new Error();
-  }
-
-  last(h: () => void): void {
-    throw new Error();
-  }
-
-  public static _collectCyclesAtEnd(): void {
-    throw new Error();
-  }
-
-  /**
-   * Add an action to run after all last() actions.
-   */
-  post(childIx: number, action: () => void): void {
-    throw new Error();
-  }
-
-  // If the priority queue has entries in it when we modify any of the nodes'
-  // ranks, then we need to re-generate it to make sure it's up-to-date.
-  private checkRegen(): void {
-    throw new Error();
-
-  }
-
-  public isActive(): boolean {
-    throw new Error();
+  addRoot(root: Vertex) {
+    this.roots.add(root);
   }
 
   close(): void {
-    throw new Error();
+    // DFS-based topological sort
 
+    const stack: Vertex[] = [];
+
+    const visit = (vertex: Vertex) => {
+      vertex.visited = true;
+
+      vertex.dependents.forEach((v) => {
+        if (!v.visited) {
+          visit(v);
+        }
+      });
+
+      stack.push(vertex);
+    };
+
+    this.roots.forEach((v) => visit(v));
+
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const vertex = stack[i];
+      vertex.process();
+    }
+
+    stack.forEach((v) => v.reset());
   }
 
-  /**
-   * Add a runnable that will be executed whenever a transaction is started.
-   * That runnable may start transactions itself, which will not cause the
-   * hooks to be run recursively.
-   *
-   * The main use case of this is the implementation of a time/alarm system.
-   */
-  static onStart(r: () => void): void {
-    throw new Error();
-  }
+  private static isInTransaction: boolean = false;
 
-  public static run<A>(f: () => A): A {
-    throw new Error();
+  public static run<A>(f: (t?: Transaction) => A): A {
+    if (this.isInTransaction) {
+      throw new Error("Already in transaction");
+    }
+
+    this.isInTransaction = true;
+
+    const t = new Transaction();
+
+    const a = f(t);
+
+    t.close();
+
+    this.isInTransaction = false;
+
+    return a;
   }
 }
