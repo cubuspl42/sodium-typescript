@@ -62,10 +62,48 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
     process(): void {
         const nf = this.cf.newValue;
         const na = this.ca.newValue;
+
         if (nf || na) {
             const f = nf || this.cf.oldValue;
             const a = na || this.ca.oldValue;
             this.fire(f(a));
+        }
+    }
+}
+
+
+class CellLiftVertex<A, B, C> extends CellVertex<C> {
+    constructor(
+        ca: CellVertex<A>,
+        cb: CellVertex<B>,
+        f: (a: A, b: B) => C,
+    ) {
+        const a = ca.oldValue;
+        const b = cb.oldValue;
+
+        super(f(a, b));
+
+        this.ca = ca;
+        this.cb = cb;
+        this.f = f;
+
+        ca.addDependent(this);
+        cb.addDependent(this);
+    }
+
+    private readonly ca: CellVertex<A>;
+    private readonly cb: CellVertex<B>;
+    private readonly f: (a: A, b: B) => C;
+
+    process(): void {
+        const na = this.ca.newValue;
+        const nb = this.cb.newValue;
+        
+        if (na || nb) {
+            const a = na || this.ca.oldValue;
+            const b = nb || this.cb.oldValue;
+            const f = this.f;
+            this.fire(f(a, b));
         }
     }
 }
@@ -134,14 +172,9 @@ export class Cell<A> {
 	 * function applied to the input cells' values.
 	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
 	 */
-    lift<B, C>(b: Cell<B>,
-        fn0: ((a: A, b: B) => C) |
-            Lambda2<A, B, C>): Cell<C> {
-        // const fn = Lambda2_toFunction(fn0),
-        //     cf = this.map((aa : A) => (bb : B) => fn(aa, bb));
-        // return Cell.apply(cf, b,
-        //     toSources(Lambda2_deps(fn0)));
-        throw new Error();
+    lift<B, C>(b: Cell<B>, f: (a: A, b: B) => C): Cell<C> {
+        return new Cell(undefined, undefined, new CellLiftVertex(this.vertex, b.vertex, f));
+
     }
 
 	/**
