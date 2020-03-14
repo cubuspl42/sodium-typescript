@@ -7,9 +7,9 @@ import { StreamLoop } from "./Stream";
 /**
  * A forward reference for a {@link Cell} equivalent to the Cell that is referenced.
  */
-export class CellLoop<A> extends LazyCell<A> {
+export class CellLoop<A> {
     constructor() {
-    	super(null, new StreamLoop<A>());
+        throw new Error();
     }
 
     /**
@@ -18,13 +18,12 @@ export class CellLoop<A> extends LazyCell<A> {
      * This requires you to create an explicit transaction with {@link Transaction#run(Lambda0)}
      * or {@link Transaction#runVoid(Runnable)}.
      */
-    loop(a_out : Cell<A>) : void {
+    loop(a_out: Cell<A>): void {
         throw new Error();
 
     }
 
-    sampleNoTrans__() : A
-    {
+    sampleNoTrans__(): A {
         throw new Error();
     }
 }

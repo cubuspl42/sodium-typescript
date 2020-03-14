@@ -3,7 +3,6 @@ import {
     Lambda2, Lambda2_deps, Lambda2_toFunction
 } from "./Lambda";
 import { Stream } from "./Stream";
-import { CoalesceHandler } from "./CoalesceHandler";
 import { Transaction } from "./Transaction";
 import { Vertex_, StreamVertex } from './Vertex';
 
@@ -23,13 +22,9 @@ import { Vertex_, StreamVertex } from './Vertex';
  * should downcast to {@link Stream}.
  */
 export class StreamSink<A> extends Stream<A> {
-    private disableListenCheck: boolean = false;
-
     constructor(f?: ((l: A, r: A) => A) | Lambda2<A, A, A>) {
         super(new StreamVertex());
     }
-
-    private coalescer: CoalesceHandler<A>;
 
     send(a: A): void {
         Transaction.run((t) => {

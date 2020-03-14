@@ -32,7 +32,7 @@ export class CellSink<A> extends Cell<A> {
     send(a: A): void {
         Transaction.run((t) => {
             const vertex = this.vertex;
-            vertex.update(a);
+            vertex.fire(a);
             t.addRoot(vertex);
         });
     }

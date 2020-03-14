@@ -17,7 +17,7 @@ export class Transaction {
     const visit = (vertex: Vertex) => {
       vertex.visited = true;
 
-      vertex.dependents.forEach((v) => {
+      vertex.dependents?.forEach((v) => {
         if (!v.visited) {
           visit(v);
         }
