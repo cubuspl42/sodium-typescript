@@ -70,6 +70,7 @@ test("should test mapC", (done) => {
   expect(["6", "8"]).toEqual(out);
 });
 
+// false positive
 test("should throw an error on mapCLateListen", () => {
   const c = new CellSink<number>(6),
     out: string[] = [],
