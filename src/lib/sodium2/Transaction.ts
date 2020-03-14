@@ -51,6 +51,8 @@ export class Transaction {
 
       t.close();
 
+      this.currentTransaction = undefined;
+
       return a;
     } else {
       return f(ct);
