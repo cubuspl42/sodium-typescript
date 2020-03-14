@@ -15,21 +15,59 @@ import { Stream } from "./Stream";
 import { Operational } from "./Operational";
 import { Tuple2 } from "./Tuple2";
 
-class LazySample<A> {
-    constructor(cell: Cell<A>) {
-        this.cell = cell;
+class CellMapVertex<A, B> extends CellVertex<B> {
+    constructor(
+        source: CellVertex<A>,
+        f: (a: A) => B,
+    ) {
+        super(f(source.oldValue));
+
+        this.f = f;
+        this.source = source;
+
+        source.addDependent(this);
     }
-    cell: Cell<A>;
-    hasValue: boolean = false;
-    value: A = null;
+
+    private readonly source: CellVertex<A>;
+    private readonly f: (a: A) => B;
+
+    process(): void {
+        const a = this.source.newValue;
+        if (!a) return;
+        const b = this.f(a);
+        this.fire(b);
+    }
 }
 
-class ApplyState<A, B> {
-    constructor() { }
-    f: (a: A) => B = null;
-    f_present: boolean = false;
-    a: A = null;
-    a_present: boolean = false;
+class CellApplyVertex<A, B> extends CellVertex<B> {
+    constructor(
+        cf: CellVertex<(a: A) => B>,
+        ca: CellVertex<A>,
+    ) {
+        const f = cf.oldValue;
+        const a = ca.oldValue;
+
+        super(f(a));
+
+        this.cf = cf;
+        this.ca = ca;
+
+        cf.addDependent(this);
+        ca.addDependent(this);
+    }
+
+    private readonly cf: CellVertex<(a: A) => B>;
+    private readonly ca: CellVertex<A>;
+
+    process(): void {
+        const nf = this.cf.newValue;
+        const na = this.ca.newValue;
+        if (nf || na) {
+            const f = nf || this.cf.oldValue;
+            const a = na || this.ca.oldValue;
+            this.fire(f(a));
+        }
+    }
 }
 
 export class Cell<A> {
@@ -87,12 +125,8 @@ export class Cell<A> {
      * always reflects the value of the function applied to the input Cell's value.
      * @param f Function to apply to convert the values. It must be <em>referentially transparent</em>.
      */
-    map<B>(f: ((a: A) => B) | Lambda1<A, B>): Cell<B> {
-        // const c = this;
-        // return Transaction.run(() =>
-        //     Operational.updates(c).map(f).holdLazy(c.sampleLazy().map(Lambda1_toFunction(f)))
-        // );
-        throw new Error();
+    map<B>(f: (a: A) => B): Cell<B> {
+        return new Cell(undefined, undefined, new CellMapVertex(this.vertex, f));
     }
 
 	/**
@@ -178,7 +212,7 @@ export class Cell<A> {
 	 * primitive for all function lifting.
 	 */
     static apply<A, B>(cf: Cell<(a: A) => B>, ca: Cell<A>, sources?: Source[]): Cell<B> {
-        throw new Error();
+        return new Cell(undefined, undefined, new CellApplyVertex(cf.vertex, ca.vertex));
     }
 
 	/**
@@ -227,6 +261,6 @@ export class Cell<A> {
     listen(h: (a: A) => void): () => void {
         h(this.vertex.oldValue);
         new ListenerVertex(this.vertex, h);
-        return () => {};
+        return () => { };
     }
 }
