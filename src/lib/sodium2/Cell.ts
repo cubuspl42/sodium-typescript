@@ -2,7 +2,6 @@
 import { Vertex, CellVertex, ListenerVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Lazy } from "./Lazy";
-import { Listener } from "./Listener";
 import { Stream } from "./Stream";
 import { Operational } from "./Operational";
 import { Tuple2 } from "./Tuple2";

@@ -1,17 +1,7 @@
-import {
-    Lambda1, Lambda1_deps, Lambda1_toFunction,
-    Lambda2, Lambda2_deps, Lambda2_toFunction,
-    Lambda3, Lambda3_deps, Lambda3_toFunction,
-    Lambda4, Lambda4_deps, Lambda4_toFunction,
-    Lambda5, Lambda5_deps, Lambda5_toFunction,
-    Lambda6, Lambda6_deps, Lambda6_toFunction,
-    toSources
-} from "./Lambda";
-import { Source, Vertex_, Vertex, StreamVertex, ListenerVertex } from "./Vertex";
+import { Vertex, StreamVertex, ListenerVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Cell } from "./Cell";
 //import { StreamLoop } from "./StreamLoop";
-import { Listener } from "./Listener";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import * as Z from "sanctuary-type-classes";
@@ -58,13 +48,7 @@ export class Stream<A> {
         this.vertex = vertex;
     }
 
-    getVertex__(): Vertex_ {
-        throw new Error();
-    }
-
     vertex: StreamVertex<A>;
-
-    protected listeners: Array<Listener<A>> = [];
 
     /**
      * Transform the stream's event values according to the supplied function, so the returned
@@ -74,7 +58,7 @@ export class Stream<A> {
      *    {@link Cell#sample()} in which case it is equivalent to {@link Stream#snapshot(Cell)}ing the
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
-    map<B>(f: ((a: A) => B) | Lambda1<A, B>): Stream<B> {
+    map<B>(f: (a: A) => B): Stream<B> {
         throw new Error();
     }
 
@@ -115,14 +99,14 @@ export class Stream<A> {
      * @param f Function to combine the values. It may construct FRP logic or use
      *    {@link Cell#sample()}. Apart from this the function must be <em>referentially transparent</em>.
      */
-    merge(s: Stream<A>, f: ((left: A, right: A) => A) | Lambda2<A, A, A>): Stream<A> {
+    merge(s: Stream<A>, f: (left: A, right: A) => A): Stream<A> {
         throw new Error();
     }
 
     /**
      * Return a stream that only outputs events for which the predicate returns true.
      */
-    filter(f: ((a: A) => boolean) | Lambda1<A, boolean>): Stream<A> {
+    filter(f: (a: A) => boolean): Stream<A> {
         throw new Error();
     }
 
@@ -176,7 +160,7 @@ export class Stream<A> {
      * always sees the value of a cell as it was before any state changes from the current
      * transaction.
      */
-    snapshot3<B, C, D>(b: Cell<B>, c: Cell<C>, f_: ((a: A, b: B, c: C) => D) | Lambda3<A, B, C, D>): Stream<D> {
+    snapshot3<B, C, D>(b: Cell<B>, c: Cell<C>, f_: (a: A, b: B, c: C) => D): Stream<D> {
         throw new Error();
     }
 
@@ -191,9 +175,8 @@ export class Stream<A> {
      * transaction.
      */
     snapshot4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
-        f_: ((a: A, b: B, c: C, d: D) => E) | Lambda4<A, B, C, D, E>): Stream<E> {
+        f_: (a: A, b: B, c: C, d: D) => E): Stream<E> {
         throw new Error();
-
     }
 
 	/**
@@ -207,7 +190,7 @@ export class Stream<A> {
      * transaction.
      */
     snapshot5<B, C, D, E, F>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>,
-        f_: ((a: A, b: B, c: C, d: D, e: E) => F) | Lambda5<A, B, C, D, E, F>): Stream<F> {
+        f_: (a: A, b: B, c: C, d: D, e: E) => F): Stream<F> {
         throw new Error();
     }
 
@@ -222,7 +205,7 @@ export class Stream<A> {
      * transaction.
      */
     snapshot6<B, C, D, E, F, G>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>, f: Cell<F>,
-        f_: ((a: A, b: B, c: C, d: D, e: E, f: F) => G) | Lambda6<A, B, C, D, E, F, G>): Stream<G> {
+        f_: (a: A, b: B, c: C, d: D, e: E, f: F) => G): Stream<G> {
         throw new Error();
     }
 
@@ -254,7 +237,7 @@ export class Stream<A> {
      *    {@link Cell#sample()} in which case it is equivalent to {@link Stream#snapshot(Cell)}ing the
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
-    collect<B, S>(initState: S, f: ((a: A, s: S) => Tuple2<B, S>) | Lambda2<A, S, Tuple2<B, S>>): Stream<B> {
+    collect<B, S>(initState: S, f: (a: A, s: S) => Tuple2<B, S>): Stream<B> {
         throw new Error();
     }
 
@@ -262,9 +245,8 @@ export class Stream<A> {
      * A variant of {@link collect(Object, Lambda2)} that takes an initial state returned by
      * {@link Cell#sampleLazy()}.
      */
-    collectLazy<B, S>(initState: Lazy<S>, f: ((a: A, s: S) => Tuple2<B, S>) | Lambda2<A, S, Tuple2<B, S>>): Stream<B> {
+    collectLazy<B, S>(initState: Lazy<S>, f: (a: A, s: S) => Tuple2<B, S>): Stream<B> {
         throw new Error();
-
     }
 
     /**
@@ -273,7 +255,7 @@ export class Stream<A> {
      *    {@link Cell#sample()} in which case it is equivalent to {@link Stream#snapshot(Cell)}ing the
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
-    accum<S>(initState: S, f: ((a: A, s: S) => S) | Lambda2<A, S, S>): Cell<S> {
+    accum<S>(initState: S, f: (a: A, s: S) => S): Cell<S> {
         throw new Error();
     }
 
@@ -281,9 +263,8 @@ export class Stream<A> {
      * A variant of {@link accum(Object, Lambda2)} that takes an initial state returned by
      * {@link Cell#sampleLazy()}.
      */
-    accumLazy<S>(initState: Lazy<S>, f: ((a: A, s: S) => S) | Lambda2<A, S, S>): Cell<S> {
+    accumLazy<S>(initState: Lazy<S>, f: (a: A, s: S) => S): Cell<S> {
         throw new Error();
-
     }
 
     /**
@@ -292,21 +273,12 @@ export class Stream<A> {
      */
     once(): Stream<A> {
         throw new Error();
-
     }
 
     listen(h: (a: A) => void): () => void {
         new ListenerVertex(this.vertex, h);
         return () => {};
     }
-
-    listen_(target: Vertex_,
-        h: (a: A) => void,
-        suppressEarlierFirings: boolean): () => void {
-        throw new Error();
-
-    }
-
 
     /**
      * Fantasy-land Algebraic Data Type Compatability.
