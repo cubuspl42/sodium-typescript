@@ -15,7 +15,6 @@
 // export { MillisecondsTimerSystem } from "./sodium/MillisecondsTimerSystem";
 // export { IOAction } from "./sodium/IOAction";
 
-export { lambda1, lambda2, lambda3, lambda4, lambda5, lambda6 } from "./sodium2/Lambda";
 export { Stream, StreamLoop } from "./sodium2/Stream";
 export { StreamSink } from "./sodium2/StreamSink";
 export { Cell } from "./sodium2/Cell";

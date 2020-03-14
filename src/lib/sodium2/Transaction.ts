@@ -1,4 +1,5 @@
 import { Vertex } from './Vertex';
+import { exec } from 'child_process';
 
 export class Transaction {
   private roots = new Set<Vertex>();
@@ -36,23 +37,23 @@ export class Transaction {
     stack.forEach((v) => v.reset());
   }
 
-  private static isInTransaction: boolean = false;
+  private static currentTransaction?: Transaction;
 
   public static run<A>(f: (t?: Transaction) => A): A {
-    if (this.isInTransaction) {
-      throw new Error("Already in transaction");
+    const ct = this.currentTransaction;
+
+    if (!ct) {
+      const t = new Transaction();
+
+      this.currentTransaction = t;
+
+      const a = f(t);
+
+      t.close();
+
+      return a;
+    } else {
+      return f(ct);
     }
-
-    this.isInTransaction = true;
-
-    const t = new Transaction();
-
-    const a = f(t);
-
-    t.close();
-
-    this.isInTransaction = false;
-
-    return a;
   }
 }

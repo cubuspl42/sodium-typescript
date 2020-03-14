@@ -2,7 +2,6 @@ import { Stream } from "./Stream";
 import { Cell } from "./Cell";
 import { Transaction } from "./Transaction";
 import { Unit } from "./Unit";
-import { Source, Vertex_ } from "./Vertex";
 
 export class Operational {
     /**

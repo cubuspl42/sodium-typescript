@@ -1,7 +1,3 @@
-import {
-    Lambda1, Lambda1_deps, Lambda1_toFunction,
-    Lambda2, Lambda2_deps, Lambda2_toFunction
-} from "./Lambda";
 import { Cell } from "./Cell";
 import { StreamSink } from "./StreamSink";
 import { Transaction } from "./Transaction";
@@ -18,7 +14,7 @@ export class CellSink<A> extends Cell<A> {
      *
      * If the function is not supplied, then an exception will be thrown in this case.
      */
-    constructor(initValue: A, f?: ((l: A, r: A) => A) | Lambda2<A, A, A>) {
+    constructor(initValue: A, f?: (l: A, r: A) => A) {
         super(initValue, undefined);
     }
 
