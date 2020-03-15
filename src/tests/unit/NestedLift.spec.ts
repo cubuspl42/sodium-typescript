@@ -1,6 +1,5 @@
 
 import {
-    lambda1,
     StreamSink,
     CellSink,
     Transaction,
@@ -9,8 +8,11 @@ import {
     Cell,
     CellLoop,
     getTotalRegistrations,
-    lambda2
 } from '../../lib/Lib';
+
+function lambda1<A, B>(f: (a: A) => B, deps?: any[]): (a: A) => B {
+    return f;
+}
 
 afterEach(() => {
     if (getTotalRegistrations() != 0) {
