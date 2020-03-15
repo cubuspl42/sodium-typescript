@@ -381,7 +381,7 @@ test('should test hold()', (done) => {
   s.send(9);
   kill();
 
-  expect([2, 9]).toEqual(out);
+  expect(out).toEqual([2, 9]);
 });
 
 test('should do holdIsDelayed', (done) => {
@@ -574,12 +574,12 @@ test('should test loopCell', (done) => {
 test('should test defer/split memory cycle', done => {
   // We do not fire through sl here, as it would cause an infinite loop.
   // This is just a memory management test.
-  let sl : StreamLoop<number>;
+  let sl: StreamLoop<number>;
   Transaction.run(() => {
     sl = new StreamLoop<number>();
     sl.loop(Operational.defer(sl));
   });
-  let kill = sl.listen(() => {});
+  let kill = sl.listen(() => { });
   kill();
   done();
 });

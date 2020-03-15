@@ -1,4 +1,4 @@
-import { Vertex, StreamVertex, ListenerVertex } from "./Vertex";
+import { Vertex, StreamVertex, ListenerVertex, CellVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Cell } from "./Cell";
 //import { StreamLoop } from "./StreamLoop";
@@ -40,6 +40,28 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         const b = this.cell.vertex.oldValue;
         const c = this.f(a, b);
         this.fire(c);
+    }
+}
+
+class HoldVertex<A> extends CellVertex<A> {
+    constructor(
+        initValue: A,
+        steps: StreamVertex<A>,
+    ) {
+        super(initValue);
+
+        this.steps = steps;
+
+        steps.addDependent(this);
+    }
+
+    private readonly steps: StreamVertex<A>;
+
+    process(): void {
+        const na = this.steps.newValue;
+        if (na) {
+            this.fire(na);
+        }
     }
 }
 
@@ -220,7 +242,7 @@ export class Stream<A> {
      * any state changes from the current transaction.
      */
     hold(initValue: A): Cell<A> {
-        throw new Error();
+        return new Cell(undefined, undefined, new HoldVertex(initValue, this.vertex));
     }
 
 	/**
@@ -277,7 +299,7 @@ export class Stream<A> {
 
     listen(h: (a: A) => void): () => void {
         new ListenerVertex(this.vertex, h);
-        return () => {};
+        return () => { };
     }
 
     /**
