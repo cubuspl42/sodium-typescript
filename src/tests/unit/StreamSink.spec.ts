@@ -197,7 +197,7 @@ test('should test filter()', (done) => {
   s.send(9);
   kill();
 
-  expect([2, 9]).toEqual(out);
+  expect(out).toEqual([2, 9]);
 });
 
 test('should test filterNotNull()', (done) => {

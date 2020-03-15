@@ -65,6 +65,56 @@ class HoldVertex<A> extends CellVertex<A> {
     }
 }
 
+class FilterVertex<A> extends StreamVertex<A> {
+    constructor(
+        s: StreamVertex<A>,
+        f: (a: A) => boolean,
+    ) {
+        super();
+
+        this.s = s;
+        this.f = f;
+
+        s.addDependent(this);
+    }
+
+    private readonly s: StreamVertex<A>;
+    private readonly f: (a: A) => boolean;
+
+    process(): void {
+        const a = this.s.newValue;
+        const f = this.f;
+        if (!a) return;
+        if (f(a)) {
+            this.fire(a);
+        }
+    }
+}
+
+class MapVertex<A, B> extends StreamVertex<B> {
+    constructor(
+        source: StreamVertex<A>,
+        f: (a: A) => B,
+    ) {
+        super();
+
+        this.source = source;
+        this.f = f;
+
+        source.addDependent(this);
+    }
+
+    private readonly source: StreamVertex<A>;
+    private readonly f: (a: A) => B;
+
+    process(): void {
+        const a = this.source.newValue;
+        const f = this.f;
+        if (!a) return;
+        this.fire(f(a));
+    }
+}
+
 export class Stream<A> {
     constructor(vertex: StreamVertex<A>) {
         this.vertex = vertex;
@@ -81,7 +131,7 @@ export class Stream<A> {
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
     map<B>(f: (a: A) => B): Stream<B> {
-        throw new Error();
+        return new Stream(new MapVertex(this.vertex, f));
     }
 
     /**
@@ -129,7 +179,7 @@ export class Stream<A> {
      * Return a stream that only outputs events for which the predicate returns true.
      */
     filter(f: (a: A) => boolean): Stream<A> {
-        throw new Error();
+        return new Stream(new FilterVertex(this.vertex, f));
     }
 
     /**
@@ -137,8 +187,7 @@ export class Stream<A> {
      * values, discarding null values.
      */
     filterNotNull(): Stream<A> {
-        throw new Error();
-
+        return this.filter((a) => a !== null);
     }
 
     /**
