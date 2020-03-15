@@ -118,6 +118,43 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     }
 }
 
+class SwitchCVertex<A> extends CellVertex<A> {
+    constructor(cca: CellVertex<Cell<A>>) {
+        const ca = cca.oldValue;
+        const a = ca.vertex.oldValue;
+
+        super(a);
+
+        this.cca = cca;
+
+        cca.addDependent(this);
+        ca.vertex.addDependent(this);
+    }
+
+    private readonly cca: CellVertex<Cell<A>>;
+
+    process(): boolean {
+        const oca = this.cca.oldValue.vertex;
+        const nca = this.cca.newValue?.vertex;
+
+        // if (!!nca && !nca.dependents.has(this)) {
+        //     oca.dependents.delete(this);
+        //     nca.addDependent(this);
+        //     return true;
+        // }
+
+        const ca = nca || oca;
+        const na = ca.newValue || ca.oldValue;
+
+        if (!!na) {
+            this.fire(na);
+        }
+
+        return false;
+    }
+}
+
+
 export class Cell<A> {
     // protected value: A;
 
@@ -254,7 +291,7 @@ export class Cell<A> {
 	 * Unwrap a cell inside another cell to give a time-varying cell implementation.
 	 */
     static switchC<A>(cca: Cell<Cell<A>>): Cell<A> {
-        throw new Error();
+        return new Cell(undefined, undefined, new SwitchCVertex(cca.vertex));
     }
 
 	/**

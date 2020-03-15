@@ -1,6 +1,5 @@
 
 import {
-  lambda1,
   StreamSink,
   StreamLoop,
   CellSink,
@@ -11,6 +10,10 @@ import {
   CellLoop,
   getTotalRegistrations
 } from '../../lib/Lib';
+
+function lambda1<A, B>(f: (a: A) => B, deps?: any[]): (a: A) => B {
+  return f;
+}
 
 afterEach(() => {
   if (getTotalRegistrations() != 0) {
@@ -449,8 +452,7 @@ test('should test switchC()', (done) => {
   ssc.send(new SC("I", "i", "ca"));
   kill();
 
-  expect(["A", "B", "c", "d", "E", "F", "f", "F", "g", "H", "I"]).toEqual(out);
-
+  expect(out).toEqual(["A", "B", "c", "d", "E", "F", "f", "F", "g", "H", "I"]);
 });
 
 test('should test switchS()', (done) => {
