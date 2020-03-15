@@ -11,6 +11,7 @@ export class Transaction {
   }
 
   close(): void {
+    let roots = this.roots;
     // DFS-based topological sort
 
     const stack: Vertex[] = [];
@@ -35,6 +36,8 @@ export class Transaction {
     }
 
     stack.forEach((v) => v.reset());
+
+    this.roots.clear();
   }
 
   private static currentTransaction?: Transaction;

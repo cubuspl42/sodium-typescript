@@ -91,7 +91,7 @@ class FilterVertex<A> extends StreamVertex<A> {
     }
 }
 
-class MapVertex<A, B> extends StreamVertex<B> {
+class StreamMapVertex<A, B> extends StreamVertex<B> {
     constructor(
         source: StreamVertex<A>,
         f: (a: A) => B,
@@ -131,7 +131,7 @@ export class Stream<A> {
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
     map<B>(f: (a: A) => B): Stream<B> {
-        return new Stream(new MapVertex(this.vertex, f));
+        return new Stream(new StreamMapVertex(this.vertex, f));
     }
 
     /**
