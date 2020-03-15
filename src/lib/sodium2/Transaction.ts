@@ -47,13 +47,15 @@ export class Transaction {
 
       this.currentTransaction = t;
 
-      const a = f(t);
+      try {
+        const a = f(t);
 
-      t.close();
+        t.close();
 
-      this.currentTransaction = undefined;
-
-      return a;
+        return a;
+      } finally {
+        this.currentTransaction = undefined;
+      }
     } else {
       return f(ct);
     }

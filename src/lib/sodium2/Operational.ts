@@ -13,7 +13,7 @@ export class Operational {
      * that do not allow the caller to detect the cell updates.
      */
     static updates<A>(c : Cell<A>) : Stream<A> {
-        throw new Error();
+        return new Stream(c.vertex);
     }
 
     /**
