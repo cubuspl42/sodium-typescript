@@ -13,6 +13,10 @@ export abstract class Vertex {
     reset(): void {
         this.visited = false;
     }
+
+    refCount(): number {
+        return 0;
+    }
 }
 
 export class StreamVertex<A> extends Vertex {
