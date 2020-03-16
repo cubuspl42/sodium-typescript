@@ -1,5 +1,3 @@
-import { Transaction } from "./Transaction";
-
 let totalRegistrations: number = 0;
 export function getTotalRegistrations(): number {
     return totalRegistrations;
