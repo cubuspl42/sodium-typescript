@@ -116,8 +116,8 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
 }
 
 export class Stream<A> {
-    constructor(vertex: StreamVertex<A>) {
-        this.vertex = vertex;
+    constructor(vertex?: StreamVertex<A>) {
+        this.vertex = vertex || new StreamVertex();
     }
 
     vertex: StreamVertex<A>;
