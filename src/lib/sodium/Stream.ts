@@ -204,7 +204,7 @@ export class Stream<A> {
 	 * at the time of the event firing, ignoring the stream's value.
 	 */
     snapshot1<B>(c: Cell<B>): Stream<B> {
-        throw new Error("snapshot1");
+        return new Stream(new SnapshotVertex(this, c, (_, b) => b));
     }
 
 	/**

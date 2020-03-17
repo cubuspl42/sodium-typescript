@@ -44,16 +44,27 @@ export class StreamVertex<A> extends Vertex {
 
 
 export class CellVertex<A> extends StreamVertex<A> {
-    oldValue: A;
+    _oldValue?: A;
 
-    constructor(initValue: A, newValue?: A) {
+    get oldValue(): A {
+        if (this._oldValue === undefined) {
+            this._oldValue = this.buildValue();
+        }
+        return this._oldValue;
+    }
+
+    constructor(initValue?: A, newValue?: A) {
         super();
-        this.oldValue = initValue;
+        this._oldValue = initValue;
         this.newValue = newValue;
     }
 
+    buildValue(): A {
+        throw new Error("Unimplemented");
+    }
+
     reset() {
-        this.oldValue = this.newValue || this.oldValue;
+        this._oldValue = this.newValue || this.oldValue;
         super.reset();
     }
 }
