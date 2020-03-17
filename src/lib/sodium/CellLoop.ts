@@ -7,12 +7,16 @@ import { CellVertex } from "./Vertex";
 class CellLoopVertex<A> extends CellVertex<A> {
     isLooped = false;
 
-    private readonly source?: CellVertex<A>;
+    private source?: CellVertex<A>;
 
-    constructor( ) {
-        super(undefined);
-    	if (Transaction.currentTransaction === null)
+    constructor() {
+        super();
+        if (Transaction.currentTransaction === null)
             throw new Error("StreamLoop/CellLoop must be used within an explicit transaction");
+    }
+
+    buildValue(): A {
+        return this.source!.oldValue;
     }
 
     process(): void {
@@ -23,7 +27,9 @@ class CellLoopVertex<A> extends CellVertex<A> {
     loop(source: CellVertex<A>): void {
         if (this.isLooped)
             throw new Error("CellLoop looped more than once");
-        this.oldValue = source.oldValue;
+
+        this.source = source;
+
         source.addDependent(this);
     }
 }

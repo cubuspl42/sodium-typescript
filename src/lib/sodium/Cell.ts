@@ -11,7 +11,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         source: CellVertex<A>,
         f: (a: A) => B,
     ) {
-        super(f(source.oldValue));
+        super();
 
         this.f = f;
         this.source = source;
@@ -21,6 +21,11 @@ class CellMapVertex<A, B> extends CellVertex<B> {
 
     private readonly source: CellVertex<A>;
     private readonly f: (a: A) => B;
+
+    buildValue(): B {
+        const f = this.f;
+        return f(this.source.oldValue);
+    }
 
     process(): void {
         const a = this.source.newValue;
@@ -35,10 +40,7 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
         cf: CellVertex<(a: A) => B>,
         ca: CellVertex<A>,
     ) {
-        const f = cf.oldValue;
-        const a = ca.oldValue;
-
-        super(f(a));
+        super();
 
         this.cf = cf;
         this.ca = ca;
@@ -49,6 +51,11 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
 
     private readonly cf: CellVertex<(a: A) => B>;
     private readonly ca: CellVertex<A>;
+
+    buildValue(): B {
+        const f = this.cf.oldValue;
+        return f(this.ca.oldValue);
+    }
 
     process(): void {
         const nf = this.cf.newValue;
@@ -62,17 +69,13 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
     }
 }
 
-
 class CellLiftVertex<A, B, C> extends CellVertex<C> {
     constructor(
         ca: CellVertex<A>,
         cb: CellVertex<B>,
         f: (a: A, b: B) => C,
     ) {
-        const a = ca.oldValue;
-        const b = cb.oldValue;
-
-        super(f(a, b));
+        super();
 
         this.ca = ca;
         this.cb = cb;
@@ -85,6 +88,11 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     private readonly ca: CellVertex<A>;
     private readonly cb: CellVertex<B>;
     private readonly f: (a: A, b: B) => C;
+
+    buildValue(): C {
+        const f = this.f;
+        return f(this.ca.oldValue, this.cb.oldValue);
+    }
 
     process(): void {
         const na = this.ca.newValue;
@@ -101,7 +109,7 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
 
 class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     constructor(ca: Cell<A>[]) {
-        super(ca.map(a => a.vertex.oldValue));
+        super();
 
         this.caa = ca;
 
@@ -109,6 +117,10 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     }
 
     private readonly caa: Cell<A>[];
+
+    buildValue(): A[] {
+        return this.caa.map(a => a.vertex.oldValue);
+    }
 
     process(): void {
         if (this.caa.some((ca) => !!ca.vertex.newValue)) {
@@ -120,18 +132,20 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
 
 class SwitchCVertex<A> extends CellVertex<A> {
     constructor(cca: CellVertex<Cell<A>>) {
-        const ca = cca.oldValue;
-        const a = ca.vertex.oldValue;
-
-        super(a);
+        super();
 
         this.cca = cca;
 
         cca.addDependent(this);
-        ca.vertex.addDependent(this);
     }
 
     private readonly cca: CellVertex<Cell<A>>;
+
+    buildValue(): A {
+        const ca = this.cca.oldValue;
+        ca.vertex.addDependent(this);
+        return ca.vertex.oldValue;
+    }
 
     process(): boolean {
         const oca = this.cca.oldValue.vertex;

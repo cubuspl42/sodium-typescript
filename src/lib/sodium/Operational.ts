@@ -5,6 +5,8 @@ import { Unit } from "./Unit";
 import { CellVertex, StreamVertex } from "./Vertex";
 
 class ValueVertex<A> extends StreamVertex<A> {
+    private isInitialized = false;
+
     constructor(
         source: CellVertex<A>,
     ) {
@@ -13,13 +15,16 @@ class ValueVertex<A> extends StreamVertex<A> {
         this.source = source;
 
         source.addDependent(this);
-
-        this.fire(source.oldValue);
     }
 
     readonly source: CellVertex<A>;
 
     process(): void {
+        if (!this.isInitialized) {
+            this.fire(this.source.oldValue);
+            this.isInitialized = true;
+        }
+
         const a = this.source.newValue;
         if (!a) return;
         this.fire(a);
