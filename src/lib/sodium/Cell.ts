@@ -194,8 +194,7 @@ export class Cell<A> {
     }
 
     sample(): A {
-        // return Transaction.run(() => { return this.sampleNoTrans__(); });
-        throw new Error();
+        return Transaction.run(() => { return this.vertex.oldValue; });
     }
 
     sampleNoTrans__(): A {  // TO DO figure out how to hide this
