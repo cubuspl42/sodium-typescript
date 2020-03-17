@@ -2,6 +2,29 @@ import { Stream } from "./Stream";
 import { Cell } from "./Cell";
 import { Transaction } from "./Transaction";
 import { Unit } from "./Unit";
+import { CellVertex, StreamVertex } from "./Vertex";
+
+class ValueVertex<A> extends StreamVertex<A> {
+    constructor(
+        source: CellVertex<A>,
+    ) {
+        super();
+
+        this.source = source;
+
+        source.addDependent(this);
+
+        this.fire(source.oldValue);
+    }
+
+    readonly source: CellVertex<A>;
+
+    process(): void {
+        const a = this.source.newValue;
+        if (!a) return;
+        this.fire(a);
+    }
+}
 
 export class Operational {
     /**
@@ -12,7 +35,7 @@ export class Operational {
      * The rule with this primitive is that you should only use it in functions
      * that do not allow the caller to detect the cell updates.
      */
-    static updates<A>(c : Cell<A>) : Stream<A> {
+    static updates<A>(c: Cell<A>): Stream<A> {
         return new Stream(c.vertex);
     }
 
@@ -26,15 +49,19 @@ export class Operational {
      * The rule with this primitive is that you should only use it in functions
      * that do not allow the caller to detect the cell updates.
      */
-    static value<A>(c : Cell<A>) : Stream<A> {
-        throw new Error();
+    static value<A>(c: Cell<A>): Stream<A> {
+        return Transaction.run((t) => {
+            const vertex = new ValueVertex(c.vertex);
+            t.addRoot(vertex);
+            return new Stream(vertex);
+        });
     }
 
 	/**
 	 * Push each event onto a new transaction guaranteed to come before the next externally
 	 * initiated transaction. Same as {@link split(Stream)} but it works on a single value.
 	 */
-	static defer<A>(s : Stream<A>) : Stream<A> {
+    static defer<A>(s: Stream<A>): Stream<A> {
         throw new Error();
     }
 
@@ -45,7 +72,7 @@ export class Operational {
 	 * new transaction, so the resulting stream's events could be simultaneous with
 	 * events output by split() or {@link defer(Stream)} invoked elsewhere in the code.
 	 */
-	static split<A>(s : Stream<Array<A>>) : Stream<A> {
+    static split<A>(s: Stream<Array<A>>): Stream<A> {
         throw new Error();
     }
 }

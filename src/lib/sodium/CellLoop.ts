@@ -2,13 +2,37 @@ import { Cell } from "./Cell";
 import { Lazy } from "./Lazy";
 import { Transaction } from "./Transaction";
 import { StreamLoop } from "./Stream";
+import { CellVertex } from "./Vertex";
 
+class CellLoopVertex<A> extends CellVertex<A> {
+    isLooped = false;
+
+    private readonly source?: CellVertex<A>;
+
+    constructor( ) {
+        super(undefined);
+    	if (Transaction.currentTransaction === null)
+            throw new Error("StreamLoop/CellLoop must be used within an explicit transaction");
+    }
+
+    process(): void {
+        const a = this.source.newValue;
+        if (!!a) this.fire(a);
+    }
+
+    loop(source: CellVertex<A>): void {
+        if (this.isLooped)
+            throw new Error("CellLoop looped more than once");
+        this.oldValue = source.oldValue;
+        source.addDependent(this);
+    }
+}
 /**
  * A forward reference for a {@link Cell} equivalent to the Cell that is referenced.
  */
-export class CellLoop<A> {
+export class CellLoop<A> extends Cell<A> {
     constructor() {
-        throw new Error();
+        super(undefined, undefined, new CellLoopVertex());
     }
 
     /**
@@ -18,11 +42,6 @@ export class CellLoop<A> {
      * or {@link Transaction#runVoid(Runnable)}.
      */
     loop(a_out: Cell<A>): void {
-        throw new Error();
-
-    }
-
-    sampleNoTrans__(): A {
-        throw new Error();
+        (this.vertex as CellLoopVertex<A>).loop(a_out.vertex);
     }
 }

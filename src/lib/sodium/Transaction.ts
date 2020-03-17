@@ -40,7 +40,7 @@ export class Transaction {
     this.roots.clear();
   }
 
-  private static currentTransaction?: Transaction;
+  static currentTransaction?: Transaction;
 
   public static run<A>(f: (t?: Transaction) => A): A {
     const ct = this.currentTransaction;

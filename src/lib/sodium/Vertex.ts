@@ -46,9 +46,10 @@ export class StreamVertex<A> extends Vertex {
 export class CellVertex<A> extends StreamVertex<A> {
     oldValue: A;
 
-    constructor(initValue: A) {
+    constructor(initValue: A, newValue?: A) {
         super();
         this.oldValue = initValue;
+        this.newValue = newValue;
     }
 
     reset() {
