@@ -154,7 +154,6 @@ class SwitchCVertex<A> extends CellVertex<A> {
     }
 }
 
-
 export class Cell<A> {
     // protected value: A;
 
