@@ -4,6 +4,8 @@ export function getTotalRegistrations(): number {
 }
 
 export abstract class Vertex {
+    name: string;
+
     readonly dependents?: Set<Vertex>;
 
     visited = false;
@@ -41,7 +43,6 @@ export class StreamVertex<A> extends Vertex {
         this.dependents.add(vertex);
     }
 }
-
 
 export class CellVertex<A> extends StreamVertex<A> {
     _oldValue?: A;

@@ -1,5 +1,5 @@
 
-import { Vertex, CellVertex, ListenerVertex } from "./Vertex";
+import { Vertex, CellVertex, ListenerVertex, StreamVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Lazy } from "./Lazy";
 import { Stream } from "./Stream";
@@ -168,6 +168,32 @@ class SwitchCVertex<A> extends CellVertex<A> {
     }
 }
 
+class SwitchSVertex<A> extends StreamVertex<A> {
+    constructor(csa: CellVertex<Stream<A>>) {
+        super();
+
+        this.csa = csa;
+
+        csa.addDependent(this);
+    }
+
+    private readonly csa: CellVertex<Stream<A>>;
+
+    process(): boolean {
+        const osa = this.csa.oldValue.vertex;
+        const nsa = this.csa.newValue?.vertex;
+
+        const sa = nsa || osa;
+        const na = sa.newValue;
+
+        if (!!na) {
+            this.fire(na);
+        }
+
+        return false;
+    }
+}
+
 export class Cell<A> {
     // protected value: A;
 
@@ -179,6 +205,11 @@ export class Cell<A> {
         } else {
             this.vertex = new CellVertex<A>(initValue!);
         }
+    }
+
+    rename(name: string): Cell<A> {
+        this.vertex.name = name;
+        return this;
     }
 
     protected setStream(str: Stream<A>) {
@@ -310,8 +341,7 @@ export class Cell<A> {
 	 * Unwrap a stream inside a cell to give a time-varying stream implementation.
 	 */
     static switchS<A>(csa: Cell<Stream<A>>): Stream<A> {
-        throw new Error();
-
+        return new Stream(new SwitchSVertex(csa.vertex));
     }
 
     /**

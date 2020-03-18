@@ -122,6 +122,11 @@ export class Stream<A> {
 
     vertex: StreamVertex<A>;
 
+    rename(name: string): Stream<A> {
+        this.vertex.name = name;
+        return this;
+    }
+
     /**
      * Transform the stream's event values according to the supplied function, so the returned
      * Stream's event values reflect the value of the function applied to the input
