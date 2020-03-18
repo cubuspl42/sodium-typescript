@@ -469,15 +469,15 @@ test('should test switchS()', (done) => {
   }
 
   const sss = new StreamSink<SS>(),
-    sa = sss.map(s => s.a),
-    sb = sss.map(s => s.b),
-    csw_str = sss.map(s => s.sw).filterNotNull().hold("sa"),
+    sa = sss.map(s => s.a).rename("sa"),
+    sb = sss.map(s => s.b).rename("sb"),
+    csw_str = sss.map(s => s.sw).rename("sss.map").filterNotNull().hold("sa"),
     // ****
     // NOTE! Because this lambda contains references to Sodium objects, we
     // must declare them explicitly using lambda1() so that Sodium knows
     // about the dependency, otherwise it can't manage the memory.
     // ****
-    csw = csw_str.map(lambda1(sw => sw == "sa" ? sa : sb, [sa, sb])),
+    csw = csw_str.map(lambda1(sw => sw == "sa" ? sa : sb, [sa, sb])).rename("csw_str.map"),
     so = Cell.switchS(csw),
     out: string[] = [],
     kill = so.listen(x => {
@@ -498,7 +498,7 @@ test('should test switchS()', (done) => {
   sss.send(new SS("I", "i", "sa"));
   kill();
 
-  expect(["A", "B", "C", "d", "e", "F", "G", "h", "I"]).toEqual(out);
+  expect(out).toEqual(["A", "B", "C", "d", "e", "F", "G", "h", "I"]);
 });
 
 test('should do switchSSimultaneous', (done) => {
@@ -545,7 +545,7 @@ test('should do switchSSimultaneous', (done) => {
   ss4.s.send(9);
   kill();
 
-  expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).toEqual(out);
+  expect(out).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 });
 
 test('should test loopCell', (done) => {
