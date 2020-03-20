@@ -19,46 +19,65 @@ export class Transaction {
   }
 
   close(): void {
-    let roots = this.roots;
-    // DFS-based topological sort
+    const topoSort = (roots: Set<Vertex>) => {
+      const stack: Vertex[] = [];
 
-    const stack: Vertex[] = [];
+      const desc = (vertex: Vertex) => {
+        return `${vertex.constructor.name} [${vertex?.name || "unnamed"}]`;
+      }
 
-    const desc = (vertex: Vertex) => {
-      return `${vertex.constructor.name} [${vertex?.name || "unnamed"}]`;
-    }
+      const visit = (vertex: Vertex) => {
+        // log(`Visiting vertex ${desc(vertex)}`);
 
-    const visit = (vertex: Vertex) => {
-      log(`Visiting vertex ${desc(vertex)}`);
+        vertex.visited = true;
 
-      vertex.visited = true;
+        vertex.dependents?.forEach((v) => {
+          if (!v.visited) {
+            visit(v);
+          }
+        });
 
-      vertex.dependents?.forEach((v) => {
-        if (!v.visited) {
-          visit(v);
-        }
+        stack.push(vertex);
+      };
+
+      log({ roots });
+
+      roots.forEach((v) => {
+        // log(`Visiting new root!`);
+        visit(v);
       });
 
-      stack.push(vertex);
-    };
+      log({ stack: stack.map(desc).reverse() });
 
-    log({ roots: this.roots });
+      stack.forEach((v) => v.reset());
 
-    this.roots.forEach((v) => {
-      log(`Visiting new root!`);
-      visit(v);
-    });
-
-    log({ stack: stack.map(desc).reverse() });
-
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const vertex = stack[i];
-      vertex.process();
+      return stack;
     }
 
-    stack.forEach((v) => v.reset());
+    const processed = new Set<Vertex>();
 
-    this.roots.clear();
+    while (this.roots.size != 0) {
+      const stack = topoSort(this.roots);
+      this.roots.clear();
+
+      for (let i = stack.length - 1; i >= 0; i--) {
+        const vertex = stack[i];
+        const isResortNeeded = vertex.process();
+        processed.add(vertex);
+
+        if (isResortNeeded) {
+          log(`isResortNeeded`);
+          for (let j = 0; j <= i; ++j) {
+            const vertex_ = stack[j];
+            this.roots.add(vertex_);
+          }
+          break;
+        }
+      }
+    }
+
+    processed.forEach((v) => v.notify());
+    processed.forEach((v) => v.update());
   }
 
   static currentTransaction?: Transaction;

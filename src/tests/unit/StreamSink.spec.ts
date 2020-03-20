@@ -406,34 +406,32 @@ test('should do holdIsDelayed', (done) => {
   expect(["2 0", "3 2"]).toEqual(out);
 });
 
-test('should test switchC()', (done) => {
-  Transaction.enableDebug(true);
-
-  class SC {
-    constructor(a: string, b: string, sw: string) {
-      this.a = a;
-      this.b = b;
-      this.sw = sw;
-    }
-
-    a: string;
-    b: string;
-    sw: string;
+class SC {
+  constructor(a: string, b: string, sw: string) {
+    this.a = a;
+    this.b = b;
+    this.sw = sw;
   }
 
+  a: string;
+  b: string;
+  sw: string;
+}
+
+function testSwitchC(done: () => void, initCsvStr: string) {
   const ssc = new StreamSink<SC>(),
     // Split each field out of SC so we can update multiple cells in a
     // single transaction.
-    ca = ssc.map(s => s.a).filterNotNull().hold("A"),
-    cb = ssc.map(s => s.b).filterNotNull().hold("a"),
-    csw_str = ssc.map(s => s.sw).filterNotNull().hold("ca"),
+    ca = ssc.map(s => s.a).filterNotNull().hold("A").rename("ca"),
+    cb = ssc.map(s => s.b).filterNotNull().hold("a").rename("cb"),
+    csw_str = ssc.map(s => s.sw).filterNotNull().hold(initCsvStr).rename("csw_str"),
     // ****
     // NOTE! Because this lambda contains references to Sodium objects, we
     // must declare them explicitly using lambda1() so that Sodium knows
     // about the dependency, otherwise it can't manage the memory.
     // ****
-    csw = csw_str.map(lambda1(s => s == "ca" ? ca : cb, [ca, cb])),
-    co = Cell.switchC(csw),
+    csw = csw_str.map(lambda1(s => s == "ca" ? ca : cb, [ca, cb])).rename("csw"),
+    co = Cell.switchC(csw).rename("co"),
     out: string[] = [],
     kill = co.listen(c => {
       out.push(c);
@@ -441,6 +439,16 @@ test('should test switchC()', (done) => {
         done();
       }
     });
+
+  return {
+    ssc,
+    out,
+    kill,
+  }
+}
+
+test('should test switchC()', (done) => {
+  const { ssc, out, kill } = testSwitchC(done, "ca");
 
   ssc.send(new SC("B", "b", null));
   ssc.send(new SC("C", "c", "cb"));
@@ -454,9 +462,26 @@ test('should test switchC()', (done) => {
   ssc.send(new SC("I", "i", "ca"));
   kill();
 
-  expect(out).toEqual(["A", "B", "c", "d", "E", "F", "f", "F", "g", "H", "I"]);
 
-  Transaction.enableDebug(false);
+  expect(out).toEqual(["A", "B", "c", "d", "E", "F", "f", "F", "g", "H", "I"]);
+});
+
+test('should test switchC() 2', (done) => {
+  const { ssc, out, kill } = testSwitchC(done, "cb");
+
+  ssc.send(new SC("B", "b", null));
+  ssc.send(new SC("C", "c", "ca"));
+  ssc.send(new SC("D", "d", null));
+  ssc.send(new SC("E", "e", "cb"));
+  ssc.send(new SC("F", "f", null));
+  ssc.send(new SC(null, null, "ca"));
+  ssc.send(new SC(null, null, "cb"));
+  ssc.send(new SC("G", "g", "ca"));
+  ssc.send(new SC("H", "h", "cb"));
+  ssc.send(new SC("I", "i", "cb"));
+  kill();
+
+  expect(out).toEqual(["a", "b", "C", "D", "e", "f", "F", "f", "G", "h", "i"]);
 });
 
 test('should test switchS()', (done) => {

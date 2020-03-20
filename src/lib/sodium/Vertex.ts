@@ -10,11 +10,16 @@ export abstract class Vertex {
 
     visited = false;
 
-    abstract process(): void;
 
     reset(): void {
         this.visited = false;
     }
+
+    notify(): void { }
+
+    abstract process(): boolean;
+
+    abstract update(): void;
 
     refCount(): number {
         return 0;
@@ -32,10 +37,11 @@ export class StreamVertex<A> extends Vertex {
         this.newValue = a;
     }
 
-    process(): void { }
+    process(): boolean {
+        return false;
+    }
 
-    reset(): void {
-        this.visited = false;
+    update(): void {
         this.newValue = undefined;
     }
 
@@ -64,9 +70,9 @@ export class CellVertex<A> extends StreamVertex<A> {
         throw new Error("Unimplemented");
     }
 
-    reset() {
+    update() {
         this._oldValue = this.newValue || this.oldValue;
-        super.reset();
+        super.update();
     }
 }
 
@@ -87,10 +93,17 @@ export class ListenerVertex<A> extends Vertex {
         source.addDependent(this);
     }
 
-    process() {
+    notify(): void {
         const a = this.source.newValue;
         if (!!a) {
             this.h(a);
         }
+    }
+
+    process() {
+        return false;
+    }
+
+    update(): void {
     }
 }

@@ -19,9 +19,10 @@ class CellLoopVertex<A> extends CellVertex<A> {
         return this.source!.oldValue;
     }
 
-    process(): void {
+    process(): boolean {
         const a = this.source.newValue;
         if (!!a) this.fire(a);
+        return false;
     }
 
     loop(source: CellVertex<A>): void {

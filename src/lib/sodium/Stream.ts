@@ -34,12 +34,16 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     private readonly cell: Cell<B>;
     private readonly f: (a: A, b: B) => C;
 
-    process(): void {
+    process(): boolean {
         const a = this.stream.vertex.newValue;
-        if (!a) return;
+
+        if (!a) return false;
+
         const b = this.cell.vertex.oldValue;
         const c = this.f(a, b);
         this.fire(c);
+
+        return false;
     }
 }
 
@@ -57,11 +61,13 @@ class HoldVertex<A> extends CellVertex<A> {
 
     private readonly steps: StreamVertex<A>;
 
-    process(): void {
+    process(): boolean {
         const na = this.steps.newValue;
         if (na) {
             this.fire(na);
         }
+
+        return false;
     }
 }
 
@@ -81,13 +87,15 @@ class FilterVertex<A> extends StreamVertex<A> {
     private readonly s: StreamVertex<A>;
     private readonly f: (a: A) => boolean;
 
-    process(): void {
+    process(): boolean {
         const a = this.s.newValue;
         const f = this.f;
         if (!a) return;
         if (f(a)) {
             this.fire(a);
         }
+
+        return false;
     }
 }
 
@@ -107,11 +115,13 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
     private readonly source: StreamVertex<A>;
     private readonly f: (a: A) => B;
 
-    process(): void {
+    process(): boolean {
         const a = this.source.newValue;
         const f = this.f;
-        if (!a) return;
+        if (!a) return false;
         this.fire(f(a));
+
+        return false;
     }
 }
 
