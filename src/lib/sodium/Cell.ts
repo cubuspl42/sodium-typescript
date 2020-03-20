@@ -27,11 +27,12 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         return f(this.source.oldValue);
     }
 
-    process(): void {
+    process(): boolean {
         const a = this.source.newValue;
         if (!a) return;
         const b = this.f(a);
         this.fire(b);
+        return false;
     }
 }
 
@@ -57,7 +58,7 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
         return f(this.ca.oldValue);
     }
 
-    process(): void {
+    process(): boolean {
         const nf = this.cf.newValue;
         const na = this.ca.newValue;
 
@@ -66,6 +67,8 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
             const a = na || this.ca.oldValue;
             this.fire(f(a));
         }
+
+        return false;
     }
 }
 
@@ -94,7 +97,7 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
         return f(this.ca.oldValue, this.cb.oldValue);
     }
 
-    process(): void {
+    process(): boolean {
         const na = this.ca.newValue;
         const nb = this.cb.newValue;
 
@@ -104,6 +107,8 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
             const f = this.f;
             this.fire(f(a, b));
         }
+
+        return false;
     }
 }
 
@@ -122,11 +127,12 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
         return this.caa.map(a => a.vertex.oldValue);
     }
 
-    process(): void {
+    process(): boolean {
         if (this.caa.some((ca) => !!ca.vertex.newValue)) {
             const na = this.caa.map((ca) => ca.vertex.newValue || ca.vertex.oldValue);
             this.fire(na);
         }
+        return false;
     }
 }
 
@@ -151,11 +157,11 @@ class SwitchCVertex<A> extends CellVertex<A> {
         const oca = this.cca.oldValue.vertex;
         const nca = this.cca.newValue?.vertex;
 
-        // if (!!nca && !nca.dependents.has(this)) {
-        //     oca.dependents.delete(this);
-        //     nca.addDependent(this);
-        //     return true;
-        // }
+        if (!!nca && !nca.dependents.has(this)) {
+            oca.dependents.delete(this);
+            nca.addDependent(this);
+            return true;
+        }
 
         const ca = nca || oca;
         const na = ca.newValue || ca.oldValue;

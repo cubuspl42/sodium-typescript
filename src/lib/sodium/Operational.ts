@@ -19,15 +19,17 @@ class ValueVertex<A> extends StreamVertex<A> {
 
     readonly source: CellVertex<A>;
 
-    process(): void {
+    process(): boolean {
         if (!this.isInitialized) {
             this.fire(this.source.oldValue);
             this.isInitialized = true;
         }
 
         const a = this.source.newValue;
-        if (!a) return;
+        if (!a) return false;
         this.fire(a);
+
+        return false;
     }
 }
 
