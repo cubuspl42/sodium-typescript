@@ -175,6 +175,7 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         this.csa = csa;
 
         csa.addDependent(this);
+        csa.oldValue?.vertex?.addDependent(this); // TODO: handle loops
     }
 
     private readonly csa: CellVertex<Stream<A>>;
@@ -254,6 +255,7 @@ export class Cell<A> {
      * @param f Function to apply to convert the values. It must be <em>referentially transparent</em>.
      */
     map<B>(f: (a: A) => B): Cell<B> {
+        // TODO: Transaction.run
         return new Cell(undefined, undefined, new CellMapVertex(this.vertex, f));
     }
 
@@ -263,8 +265,8 @@ export class Cell<A> {
 	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
 	 */
     lift<B, C>(b: Cell<B>, f: (a: A, b: B) => C): Cell<C> {
+        // TODO: Transaction.run
         return new Cell(undefined, undefined, new CellLiftVertex(this.vertex, b.vertex, f));
-
     }
 
 	/**
@@ -294,6 +296,8 @@ export class Cell<A> {
 	 */
     lift5<B, C, D, E, F>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>,
         fn0: (a: A, b: B, c: C, d: D, e: E) => F): Cell<F> {
+        // TODO: Transaction.run
+
         throw new Error();
     }
 

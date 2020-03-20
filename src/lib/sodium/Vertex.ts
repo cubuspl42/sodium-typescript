@@ -4,7 +4,7 @@ export function getTotalRegistrations(): number {
 }
 
 export abstract class Vertex {
-    name: string;
+    name?: string;
 
     readonly dependents?: Set<Vertex>;
 

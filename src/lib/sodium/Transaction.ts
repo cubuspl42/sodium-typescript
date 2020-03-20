@@ -1,6 +1,14 @@
 import { Vertex } from './Vertex';
 import { exec } from 'child_process';
 
+let enableDebugFlag = true;
+
+function log(a: any): void {
+  if (enableDebugFlag) {
+    console.log(a);
+  }
+}
+
 export class Transaction {
   private roots = new Set<Vertex>();
 
@@ -16,7 +24,13 @@ export class Transaction {
 
     const stack: Vertex[] = [];
 
+    const desc = (vertex: Vertex) => {
+      return `${vertex.constructor.name} [${vertex?.name || "unnamed"}]`;
+    }
+
     const visit = (vertex: Vertex) => {
+      log(`Visiting vertex ${desc(vertex)}`);
+
       vertex.visited = true;
 
       vertex.dependents?.forEach((v) => {
@@ -28,7 +42,14 @@ export class Transaction {
       stack.push(vertex);
     };
 
-    this.roots.forEach((v) => visit(v));
+    log({ roots: this.roots });
+
+    this.roots.forEach((v) => {
+      log(`Visiting new root!`);
+      visit(v);
+    });
+
+    log({ stack: stack.map(desc).reverse() });
 
     for (let i = stack.length - 1; i >= 0; i--) {
       const vertex = stack[i];
@@ -42,10 +63,16 @@ export class Transaction {
 
   static currentTransaction?: Transaction;
 
+  static enableDebug(flag: boolean) {
+    enableDebugFlag = flag;
+  }
+
   public static run<A>(f: (t?: Transaction) => A): A {
     const ct = this.currentTransaction;
 
     if (!ct) {
+      log(`Transaction start`);
+
       const t = new Transaction();
 
       this.currentTransaction = t;
@@ -58,6 +85,8 @@ export class Transaction {
         return a;
       } finally {
         this.currentTransaction = undefined;
+
+        log(`Transaction end`);
       }
     } else {
       return f(ct);

@@ -407,6 +407,8 @@ test('should do holdIsDelayed', (done) => {
 });
 
 test('should test switchC()', (done) => {
+  Transaction.enableDebug(true);
+
   class SC {
     constructor(a: string, b: string, sw: string) {
       this.a = a;
@@ -453,6 +455,8 @@ test('should test switchC()', (done) => {
   kill();
 
   expect(out).toEqual(["A", "B", "c", "d", "E", "F", "f", "F", "g", "H", "I"]);
+
+  Transaction.enableDebug(false);
 });
 
 test('should test switchS()', (done) => {
