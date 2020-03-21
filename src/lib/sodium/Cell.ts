@@ -450,6 +450,15 @@ export class Cell<A> {
         return new Stream(new SwitchSVertex(csa.vertex));
     }
 
+    flatMap<R>(f: (value: A) => Cell<R>) {
+        return Cell.switchC(this.map(f));
+    };
+
+    forEach<R>(f: (value: A) => R): () => void {
+        f(this.sample());
+        return this.listen(f);
+    };
+
     /**
      * When transforming a value from a larger type to a smaller type, it is likely for duplicate changes to become
      * propergated. This function insures only distinct changes get propergated.
