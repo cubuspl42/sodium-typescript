@@ -112,6 +112,82 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     }
 }
 
+class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
+    constructor(
+        f: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
+        ca?: CellVertex<A>,
+        cb?: CellVertex<B>,
+        cc?: CellVertex<C>,
+        cd?: CellVertex<D>,
+        ce?: CellVertex<E>,
+        cf?: CellVertex<F>,
+    ) {
+        super();
+
+        this.ca = ca;
+        this.cb = cb;
+        this.cc = cc;
+        this.cd = cd;
+        this.ce = ce;
+        this.cf = cf;
+
+        this.f = f;
+
+        ca?.addDependent(this);
+        cb?.addDependent(this);
+        cc?.addDependent(this);
+        cd?.addDependent(this);
+        ce?.addDependent(this);
+        cf?.addDependent(this);
+    }
+
+    private readonly ca?: CellVertex<A>;
+    private readonly cb?: CellVertex<B>;
+    private readonly cc?: CellVertex<C>;
+    private readonly cd?: CellVertex<D>;
+    private readonly ce?: CellVertex<E>;
+    private readonly cf?: CellVertex<F>;
+
+    private readonly f: (a: A, b: B, c: C, d: D, e: E, f: F) => G;
+
+    buildValue(): G {
+        const f = this.f;
+        return f(
+            this.ca?.oldValue,
+            this.cb?.oldValue,
+            this.cc?.oldValue,
+            this.cd?.oldValue,
+            this.ce?.oldValue,
+            this.cf?.oldValue,
+        );
+    }
+
+    process(): boolean {
+        const na = this.ca?.newValue;
+        const nb = this.cb?.newValue;
+        const nc = this.cc?.newValue;
+        const nd = this.cd?.newValue;
+        const ne = this.ce?.newValue;
+        const nf = this.cf?.newValue;
+
+        if (na || nb || nc || nd || ne || nf) {
+            const a = na || this.ca?.oldValue;
+            const b = nb || this.cb?.oldValue;
+            const c = nc || this.cc?.oldValue;
+            const d = nd || this.cd?.oldValue;
+            const e = ne || this.ce?.oldValue;
+            const f = nf || this.cf?.oldValue;
+
+            const fn = this.f;
+
+            this.fire(fn(a, b, c, d, e, f));
+        }
+
+        return false;
+    }
+}
+
+
 class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     constructor(ca: Cell<A>[]) {
         super();
@@ -292,7 +368,7 @@ export class Cell<A> {
 	 */
     lift4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
         fn0: (a: A, b: B, c: C, d: D) => E): Cell<E> {
-        throw new Error();
+        return this._lift6((a, b, c, d) => fn0(a, b, c, d), b, c, d);
     }
 
 	/**
@@ -312,9 +388,26 @@ export class Cell<A> {
 	 * function applied to the input cells' values.
 	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
 	 */
-    lift6<B, C, D, E, F, G>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>, f: Cell<F>,
-        fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G): Cell<G> {
-        throw new Error();
+    lift6<B, C, D, E, F, G>(
+        b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>, f: Cell<F>,
+        fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
+    ): Cell<G> {
+        return this._lift6(fn0, b, c, d, e, f);
+    }
+
+    _lift6<B, C, D, E, F, G>(
+        fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
+        b?: Cell<B>, c?: Cell<C>, d?: Cell<D>, e?: Cell<E>, f?: Cell<F>,
+    ): Cell<G> {
+        return new Cell(undefined, undefined, new CellLift6Vertex(
+            fn0,
+            this.vertex,
+            b?.vertex,
+            c?.vertex,
+            d?.vertex,
+            e?.vertex,
+            f?.vertex,
+        ));
     }
 
     /**
