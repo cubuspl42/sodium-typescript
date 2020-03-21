@@ -8,6 +8,18 @@ function log(a: any): void {
   }
 }
 
+function visit(stack: Vertex[], vertex: Vertex) {
+  vertex.visited = true;
+
+  vertex.dependents?.forEach((v) => {
+    if (!v.visited) {
+      visit(stack, v);
+    }
+  });
+
+  stack.push(vertex);
+}
+
 export class Transaction {
   private roots = new Set<Vertex>();
 
@@ -25,25 +37,9 @@ export class Transaction {
         return `${vertex.constructor.name} [${vertex?.name || "unnamed"}]`;
       }
 
-      const visit = (vertex: Vertex) => {
-        vertex.visited = true;
-
-        vertex.dependents?.forEach((v) => {
-          if (!v.visited) {
-            visit(v);
-          }
-        });
-
-        stack.push(vertex);
-      };
-
-      log({ roots });
-
       roots.forEach((v) => {
-        visit(v);
+        visit(stack, v);
       });
-
-      log({ stack: stack.map(desc).reverse() });
 
       stack.forEach((v) => v.reset());
 
