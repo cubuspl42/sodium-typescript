@@ -29,7 +29,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
 
     process(): boolean {
         const a = this.source.newValue;
-        if (a === undefined) return;
+        if (a === undefined) return false;
         const b = this.f(a);
         this.fire(b);
         return false;
@@ -114,7 +114,7 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
 
 class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
     constructor(
-        f: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
+        f: (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G,
         ca?: CellVertex<A>,
         cb?: CellVertex<B>,
         cc?: CellVertex<C>,
@@ -148,7 +148,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
     private readonly ce?: CellVertex<E>;
     private readonly cf?: CellVertex<F>;
 
-    private readonly f: (a: A, b: B, c: C, d: D, e: E, f: F) => G;
+    private readonly f: (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G;
 
     buildValue(): G {
         const f = this.f;
@@ -371,7 +371,7 @@ export class Cell<A> {
 	 */
     lift4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
         fn0: (a: A, b: B, c: C, d: D) => E): Cell<E> {
-        return this._lift6((a, b, c, d) => fn0(a, b, c, d), b, c, d);
+        return this._lift6((a, b, c, d) => fn0(a!, b!, c!, d!), b, c, d);
     }
 
 	/**
@@ -395,11 +395,14 @@ export class Cell<A> {
         b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>, f: Cell<F>,
         fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
     ): Cell<G> {
-        return this._lift6(fn0, b, c, d, e, f);
+        return this._lift6(
+          fn0 as (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G,
+          b, c, d, e, f,
+        );
     }
 
     _lift6<B, C, D, E, F, G>(
-        fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
+        fn0: (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G,
         b?: Cell<B>, c?: Cell<C>, d?: Cell<D>, e?: Cell<E>, f?: Cell<F>,
     ): Cell<G> {
         return new Cell(undefined, undefined, new CellLift6Vertex(
