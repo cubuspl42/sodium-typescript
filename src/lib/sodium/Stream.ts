@@ -82,7 +82,7 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
     }
 }
 
-class HoldVertex<A> extends CellVertex<A> {
+export class HoldVertex<A> extends CellVertex<A> {
     constructor(
         initValue: A,
         steps: StreamVertex<A>,

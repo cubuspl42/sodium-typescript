@@ -2,7 +2,7 @@
 import { Vertex, CellVertex, ListenerVertex, StreamVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Lazy } from "./Lazy";
-import { Stream } from "./Stream";
+import { HoldVertex, Stream } from "./Stream";
 import { Operational } from "./Operational";
 import { Tuple2 } from "./Tuple2";
 
@@ -286,8 +286,10 @@ export class Cell<A> {
     vertex: CellVertex<A>;
 
     constructor(initValue?: A, str?: Stream<A>, vertex?: CellVertex<A>) {
-        if (!!vertex) {
+        if (vertex !== undefined) {
             this.vertex = vertex;
+        } else if (initValue !== undefined && str !== undefined) {
+            this.vertex = new HoldVertex<A>(initValue, str.vertex);
         } else {
             this.vertex = new CellVertex<A>(initValue!);
         }
