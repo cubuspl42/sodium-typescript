@@ -1,7 +1,6 @@
 import { Vertex } from './Vertex';
-import { exec } from 'child_process';
 
-let enableDebugFlag = true;
+let enableDebugFlag = false;
 
 function log(a: any): void {
   if (enableDebugFlag) {
