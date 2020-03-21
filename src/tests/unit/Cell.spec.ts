@@ -58,7 +58,7 @@ test('cellLiftArray', () => {
   ss1.send(4);
   cs.send(2);
   kill();
-  expect([[0, 1], [1, 1], [3, 2], [6, 6], [10, 24], [24, 2]]).toEqual(out);
+  expect(out).toEqual([[0, 1], [1, 1], [3, 2], [6, 6], [10, 24], [24, 2]]);
 });
 
 test('cellTracking', () => {

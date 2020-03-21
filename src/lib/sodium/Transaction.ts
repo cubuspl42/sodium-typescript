@@ -27,8 +27,6 @@ export class Transaction {
       }
 
       const visit = (vertex: Vertex) => {
-        // log(`Visiting vertex ${desc(vertex)}`);
-
         vertex.visited = true;
 
         vertex.dependents?.forEach((v) => {
@@ -43,7 +41,6 @@ export class Transaction {
       log({ roots });
 
       roots.forEach((v) => {
-        // log(`Visiting new root!`);
         visit(v);
       });
 

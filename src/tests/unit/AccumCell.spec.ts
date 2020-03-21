@@ -20,18 +20,20 @@ afterEach(() => {
 test('accum() over a Cell via switchC', (done) => {
   const out = new Array<string>();
   const sHello = new StreamSink<string>();
+  sHello.rename("sHello");
   const sUpper = new StreamSink<boolean>();
-  const cHello = sHello.accum("", (val, acc) => acc + val);
+  sUpper.rename("sUpper");
+  const cHello = sHello.accum("", (val, acc) => acc + val).rename("cHello");
   const cFinal = Cell.switchC(sUpper.accum(cHello, (flag, acc) =>
-    acc.map((str:string) => flag ? str.toUpperCase() : str.toLowerCase())
+    acc.map((str: string) => flag ? str.toUpperCase() : str.toLowerCase())
   ));
 
   const kill = cFinal.listen(a => {
-      out.push(a);
-      if (out.length === 6) {
-        done();
-      }
-    });
+    out.push(a);
+    if (out.length === 6) {
+      done();
+    }
+  });
 
   sHello.send("h");
   sUpper.send(true);
@@ -61,13 +63,13 @@ test('accum over multiple cells via snapshot/hold', (done) => {
     const cLoop = new CellLoop<string>();
 
     cLoop.loop(
-        sFlush.snapshot4(cLoop, sHello.hold(""), sWorld.hold(""), (evt, total, hello, world) =>
-          evt === FlushTarget.HELLO
-            ? total += hello
-            : evt === FlushTarget.WORLD
-              ? total += world
-              : total += " "
-        )
+      sFlush.snapshot4(cLoop, sHello.hold(""), sWorld.hold(""), (evt, total, hello, world) =>
+        evt === FlushTarget.HELLO
+          ? total += hello
+          : evt === FlushTarget.WORLD
+            ? total += world
+            : total += " "
+      )
         .hold("")
     )
 
@@ -80,31 +82,31 @@ test('accum over multiple cells via snapshot/hold', (done) => {
     }
   });
 
-    sHello.send("h");
-    sFlush.send(FlushTarget.HELLO);
-    sHello.send("e");
-    sFlush.send(FlushTarget.HELLO);
-    sHello.send("l");
-    sFlush.send(FlushTarget.HELLO);
-    sHello.send("l");
-    sFlush.send(FlushTarget.HELLO);
-    sHello.send("o");
-    sFlush.send(FlushTarget.HELLO);
+  sHello.send("h");
+  sFlush.send(FlushTarget.HELLO);
+  sHello.send("e");
+  sFlush.send(FlushTarget.HELLO);
+  sHello.send("l");
+  sFlush.send(FlushTarget.HELLO);
+  sHello.send("l");
+  sFlush.send(FlushTarget.HELLO);
+  sHello.send("o");
+  sFlush.send(FlushTarget.HELLO);
 
-    sFlush.send(FlushTarget.EMPTY);
+  sFlush.send(FlushTarget.EMPTY);
 
-    sWorld.send("w");
-    sFlush.send(FlushTarget.WORLD);
-    sWorld.send("o");
-    sFlush.send(FlushTarget.WORLD);
-    sWorld.send("r");
-    sFlush.send(FlushTarget.WORLD);
-    sWorld.send("l");
-    sFlush.send(FlushTarget.WORLD);
-    sWorld.send("d");
-    sFlush.send(FlushTarget.WORLD);
-    kill();
+  sWorld.send("w");
+  sFlush.send(FlushTarget.WORLD);
+  sWorld.send("o");
+  sFlush.send(FlushTarget.WORLD);
+  sWorld.send("r");
+  sFlush.send(FlushTarget.WORLD);
+  sWorld.send("l");
+  sFlush.send(FlushTarget.WORLD);
+  sWorld.send("d");
+  sFlush.send(FlushTarget.WORLD);
+  kill();
 
-    expect(out).toEqual(["", "h", "he", "hel", "hell", "hello", "hello ", "hello w", "hello wo", "hello wor", "hello worl", "hello world"]);
+  expect(out).toEqual(["", "h", "he", "hel", "hell", "hello", "hello ", "hello w", "hello wo", "hello wor", "hello worl", "hello world"]);
 
 });

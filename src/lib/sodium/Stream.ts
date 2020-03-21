@@ -5,6 +5,8 @@ import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import * as Z from "sanctuary-type-classes";
+import { CellLoop } from "./CellLoop";
+import { lookup } from "dns";
 
 class MergeState<A> {
     constructor() { }
@@ -27,7 +29,6 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         this.cell = cell;
 
         stream.vertex.addDependent(this);
-        cell.vertex.addDependent(this);
     }
 
     private readonly stream: Stream<A>;
@@ -37,7 +38,8 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     process(): boolean {
         const a = this.stream.vertex.newValue;
 
-        if (!a) return false;
+        // TODO: Fix other "!a"
+        if (a === undefined) return false;
 
         const b = this.cell.vertex.oldValue;
         const c = this.f(a, b);
@@ -342,7 +344,10 @@ export class Stream<A> {
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
     accum<S>(initState: S, f: (a: A, s: S) => S): Cell<S> {
-        throw new Error();
+        const loop = new CellLoop<S>();
+        const out = this.snapshot(loop, f).hold(initState);
+        loop.loop(out);
+        return out;
     }
 
     /**
