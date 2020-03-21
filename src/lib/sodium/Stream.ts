@@ -199,6 +199,31 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
     }
 }
 
+class StreamFirstOfVertex<A> extends StreamVertex<A> {
+    constructor(
+        streams: Stream<A>[],
+    ) {
+        super();
+
+        this.streams = streams;
+
+        streams.forEach((s) => s.vertex.addDependent(this));
+    }
+
+    private readonly streams: Stream<A>[];
+
+    process(): boolean {
+        const s = this.streams.find((s) => s.vertex.newValue !== undefined);
+        const na = s?.vertex.newValue;
+
+        if (na !== undefined) {
+            this.fire(na);
+        }
+
+        return false;
+    }
+}
+
 export class Stream<A> {
     constructor(vertex?: StreamVertex<A>) {
         this.vertex = vertex || new StreamVertex();
@@ -443,11 +468,9 @@ export class Stream<A> {
         return () => { };
     }
 
-    /**
-     * Fantasy-land Algebraic Data Type Compatability.
-     * Stream satisfies the Functor and Monoid Categories (and hence Semigroup)
-     * @see {@link https://github.com/fantasyland/fantasy-land} for more info
-     */
+    static firstOf<A>(streams: Stream<A>[]): Stream<A> {
+        return new Stream(new StreamFirstOfVertex<A>(streams));
+    }
 }
 
 /**
