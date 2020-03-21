@@ -1,20 +1,9 @@
 import { Vertex, StreamVertex, ListenerVertex, CellVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Cell } from "./Cell";
-//import { StreamLoop } from "./StreamLoop";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
-import * as Z from "sanctuary-type-classes";
 import { CellLoop } from "./CellLoop";
-import { lookup } from "dns";
-
-class MergeState<A> {
-    constructor() { }
-    left: A = null;
-    left_present: boolean = false;
-    right: A = null;
-    right_present: boolean = false;
-}
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     constructor(
@@ -136,7 +125,7 @@ class FilterVertex<A> extends StreamVertex<A> {
     process(): boolean {
         const a = this.s.newValue;
         const f = this.f;
-        if (a === undefined) return;
+        if (a === undefined) return false;
         if (f(a)) {
             this.fire(a);
         }

@@ -82,7 +82,7 @@ export class Transaction {
     enableDebugFlag = flag;
   }
 
-  public static run<A>(f: (t?: Transaction) => A): A {
+  public static run<A>(f: (t: Transaction) => A): A {
     const ct = this.currentTransaction;
 
     if (!ct) {
