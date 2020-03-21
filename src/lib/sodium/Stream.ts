@@ -49,6 +49,51 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     }
 }
 
+class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
+    constructor(
+        stream: Stream<A>,
+        cb: Cell<B>,
+        cc: Cell<C>,
+        cd: Cell<D>,
+        f: (a: A, b: B, c: C, d: D) => E,
+    ) {
+        super();
+
+        this.f = f;
+        this.stream = stream;
+
+        this.cb = cb;
+        this.cc = cc;
+        this.cd = cd;
+
+        stream.vertex.addDependent(this);
+    }
+
+    private readonly stream: Stream<A>;
+
+    private readonly cb: Cell<B>;
+    private readonly cc: Cell<C>;
+    private readonly cd: Cell<D>;
+
+    private readonly f: (a: A, b: B, c: C, d: D) => E;
+
+    process(): boolean {
+        const a = this.stream.vertex.newValue;
+
+        if (a === undefined) return false;
+
+        const b = this.cb.vertex.oldValue;
+        const c = this.cc.vertex.oldValue;
+        const d = this.cd.vertex.oldValue;
+
+        const e = this.f(a, b, c, d);
+
+        this.fire(e);
+
+        return false;
+    }
+}
+
 class HoldVertex<A> extends CellVertex<A> {
     constructor(
         initValue: A,
@@ -264,7 +309,7 @@ export class Stream<A> {
      */
     snapshot4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
         f_: (a: A, b: B, c: C, d: D) => E): Stream<E> {
-        throw new Error();
+        return new Stream(new Snapshot4Vertex<A, B, C, D, E>(this, b, c, d, f_));
     }
 
 	/**
