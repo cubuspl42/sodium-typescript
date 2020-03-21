@@ -172,6 +172,45 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
     }
 }
 
+class StreamMergeVertex<A> extends StreamVertex<A> {
+    constructor(
+        s0: StreamVertex<A>,
+        s1: StreamVertex<A>,
+        f: (a0: A, a1: A) => A,
+    ) {
+        super();
+
+        this.s0 = s0;
+        this.s1 = s1;
+        this.f = f;
+
+        s0.addDependent(this);
+        s1.addDependent(this);
+    }
+
+    private readonly s0: StreamVertex<A>;
+    private readonly s1: StreamVertex<A>;
+
+    private readonly f: (a0: A, a1: A) => A;
+
+    process(): boolean {
+        const n0 = this.s0.newValue;
+        const n1 = this.s1.newValue;
+
+        const f = this.f;
+
+        if (n0 !== undefined && n1 !== undefined) {
+            this.fire(f(n0, n1));
+        } else if (n0 !== undefined) {
+            this.fire(n0);
+        } else if (n1 !== undefined) {
+            this.fire(n1);
+        }
+
+        return false;
+    }
+}
+
 export class Stream<A> {
     constructor(vertex?: StreamVertex<A>) {
         this.vertex = vertex || new StreamVertex();
@@ -218,7 +257,7 @@ export class Stream<A> {
      * be taken, because events can be dropped.
      */
     orElse(s: Stream<A>): Stream<A> {
-        throw new Error();
+        return this.merge(s, (l, _r) => l);
     }
 
     /**
@@ -234,7 +273,7 @@ export class Stream<A> {
      *    {@link Cell#sample()}. Apart from this the function must be <em>referentially transparent</em>.
      */
     merge(s: Stream<A>, f: (left: A, right: A) => A): Stream<A> {
-        throw new Error();
+        return new Stream(new StreamMergeVertex(this.vertex, s.vertex, f));
     }
 
     /**

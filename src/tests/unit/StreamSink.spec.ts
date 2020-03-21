@@ -78,7 +78,7 @@ test('should map_tack', (done) => {
   t.send("banana");
   kill();
 
-  expect([8]).toEqual(out);
+  expect(out).toEqual([8]);
 });
 
 test('should test mapTo()', (done) => {
@@ -96,7 +96,7 @@ test('should test mapTo()', (done) => {
   s.send(9);
   kill();
 
-  expect(['fusebox', 'fusebox']).toEqual(out);
+  expect(out).toEqual(['fusebox', 'fusebox']);
 });
 
 test('should do mergeNonSimultaneous', (done) => {
@@ -117,7 +117,7 @@ test('should do mergeNonSimultaneous', (done) => {
   s1.send(8);
   kill();
 
-  expect([7, 9, 8]).toEqual(out);
+  expect(out).toEqual([7, 9, 8]);
 });
 
 test('should do mergeSimultaneous', (done) => {
@@ -159,7 +159,7 @@ test('should do mergeSimultaneous', (done) => {
   });
   kill();
 
-  expect([60, 9, 90, 90, 90]).toEqual(out);
+  expect(out).toEqual([60, 9, 90, 90, 90]);
 });
 
 test('should do coalesce', (done) => {
