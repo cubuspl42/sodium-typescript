@@ -201,7 +201,7 @@ export class Stream<A> {
      * @param b Constant value.
      */
     mapTo<B>(b: B): Stream<B> {
-        throw new Error();
+        return this.map((_) => b);
     }
 
     /**
