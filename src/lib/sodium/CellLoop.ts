@@ -21,7 +21,7 @@ class CellLoopVertex<A> extends CellVertex<A> {
 
     process(): boolean {
         const a = this.source.newValue;
-        if (!!a) this.fire(a);
+        if (a !== undefined) this.fire(a);
         return false;
     }
 

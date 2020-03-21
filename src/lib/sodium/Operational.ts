@@ -26,7 +26,7 @@ class ValueVertex<A> extends StreamVertex<A> {
         }
 
         const a = this.source.newValue;
-        if (!a) return false;
+        if (a === undefined) return false;
         this.fire(a);
 
         return false;
