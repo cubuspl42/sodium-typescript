@@ -38,7 +38,6 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     process(): boolean {
         const a = this.stream.vertex.newValue;
 
-        // TODO: Fix other "!a"
         if (a === undefined) return false;
 
         const b = this.cell.vertex.oldValue;
@@ -137,7 +136,7 @@ class FilterVertex<A> extends StreamVertex<A> {
     process(): boolean {
         const a = this.s.newValue;
         const f = this.f;
-        if (!a) return;
+        if (a === undefined) return;
         if (f(a)) {
             this.fire(a);
         }
@@ -165,7 +164,7 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
     process(): boolean {
         const a = this.source.newValue;
         const f = this.f;
-        if (!a) return false;
+        if (a === undefined) return false;
         this.fire(f(a));
 
         return false;

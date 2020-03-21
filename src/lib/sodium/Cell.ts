@@ -29,7 +29,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
 
     process(): boolean {
         const a = this.source.newValue;
-        if (!a) return;
+        if (a === undefined) return;
         const b = this.f(a);
         this.fire(b);
         return false;
