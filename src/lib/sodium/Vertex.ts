@@ -95,7 +95,7 @@ export class ListenerVertex<A> extends Vertex {
 
     notify(): void {
         const a = this.source.newValue;
-        if (!!a) {
+        if (a !== undefined) {
             this.h(a);
         }
     }
