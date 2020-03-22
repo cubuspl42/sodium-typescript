@@ -498,8 +498,8 @@ test('should test switchS()', (done) => {
   }
 
   const sss = new StreamSink<SS>(),
-    sa = sss.map(s => s.a).rename("sa"),
-    sb = sss.map(s => s.b).rename("sb"),
+    sa = sss.map(s => s.a).filterNotNull().rename("sa"),
+    sb = sss.map(s => s.b).filterNotNull().rename("sb"),
     csw_str = sss.map(s => s.sw).rename("sss.map").filterNotNull().hold("sa"),
     // ****
     // NOTE! Because this lambda contains references to Sodium objects, we
@@ -525,9 +525,11 @@ test('should test switchS()', (done) => {
   sss.send(new SS("G", "g", "sb"));
   sss.send(new SS("H", "h", "sa"));
   sss.send(new SS("I", "i", "sa"));
+  sss.send(new SS(null, "j", "sb"));
+  sss.send(new SS("K", null, "sa"));
   kill();
 
-  expect(out).toEqual(["A", "B", "C", "d", "e", "F", "G", "h", "I"]);
+  expect(out).toEqual(["A", "B", "C", "d", "e", "F", "G", "h", "I", "j", "K"]);
 });
 
 test('should do switchSSimultaneous', (done) => {

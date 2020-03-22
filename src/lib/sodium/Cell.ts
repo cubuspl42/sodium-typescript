@@ -65,7 +65,7 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
         const nf = this.cf.newValue;
         const na = this.ca.newValue;
 
-        if (nf || na) {
+        if (nf || na) { // TODO: Switch to ??
             const f = nf || this.cf.oldValue;
             const a = na || this.ca.oldValue;
             this.fire(f(a));
@@ -284,7 +284,7 @@ class SwitchSVertex<A> extends StreamVertex<A> {
             return true;
         }
 
-        const na = osa.newValue;
+        const na = osa?.newValue ?? nsa?.newValue;
 
         Transaction.log(`processing SwitchSVertex [${this.name ?? ""}], na = ${na}`);
 
