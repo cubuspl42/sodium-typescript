@@ -28,9 +28,12 @@ class CellMapVertex<A, B> extends CellVertex<B> {
     }
 
     process(): boolean {
-        const a = this.source.newValue;
-        if (a === undefined) return false;
-        const b = this.f(a);
+        const na = this.source.newValue;
+
+        Transaction.log(`processing CellMapVertex [${this.name ?? ""}], na = ${na}`);
+
+        if (na === undefined) return false;
+        const b = this.f(na);
         this.fire(b);
         return false;
     }
@@ -233,7 +236,10 @@ class SwitchCVertex<A> extends CellVertex<A> {
         const oca = this.cca.oldValue.vertex;
         const nca = this.cca.newValue?.vertex;
 
+        Transaction.log(`processing SwitchCVertex [${this.name ?? ""}]`);
+
         if (nca !== undefined && !nca.dependents.has(this)) {
+            Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], resort is needed...`);
             oca.dependents.delete(this);
             nca.addDependent(this);
             return true;
@@ -241,6 +247,8 @@ class SwitchCVertex<A> extends CellVertex<A> {
 
         const ca = nca || oca;
         const na = ca.newValue || ca.oldValue;
+
+        Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], after resort, na = ${na}`);
 
         if (!!na) {
             this.fire(na);
@@ -266,12 +274,20 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         const osa = this.csa.oldValue.vertex;
         const nsa = this.csa.newValue?.vertex;
 
-        if (nsa !== undefined) {
+        Transaction.log(`processing SwitchSVertex [${this.name ?? ""}], osa = ${osa.describe()}, nsa = ${nsa?.describe()}`);
+
+        if (nsa !== undefined && !nsa.dependents.has(this)) {
+            Transaction.log(`processing SwitchSVertex [${this.name ?? ""}], switching...`);
             osa.dependents.delete(this);
             nsa.addDependent(this);
+
+            return true;
         }
 
         const na = osa.newValue;
+
+        Transaction.log(`processing SwitchSVertex [${this.name ?? ""}], na = ${na}`);
+
         if (na !== undefined) {
             this.fire(na);
         }

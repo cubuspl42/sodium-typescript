@@ -24,6 +24,14 @@ export abstract class Vertex {
     refCount(): number {
         return 0;
     }
+
+    describe(): string {
+        return `${this.constructor.name} {name: ${this.name ?? "unnamed"}${this.describe_()}}`;
+    }
+
+    describe_(): string {
+        return "";
+    }
 }
 
 export class StreamVertex<A> extends Vertex {
@@ -47,6 +55,10 @@ export class StreamVertex<A> extends Vertex {
 
     addDependent(vertex: Vertex): void {
         this.dependents.add(vertex);
+    }
+
+    describe_(): string {
+        return `, new: ${this.newValue}`;
     }
 }
 
@@ -73,6 +85,10 @@ export class CellVertex<A> extends StreamVertex<A> {
     update() {
         this._oldValue = this.newValue || this.oldValue;
         super.update();
+    }
+
+    describe_(): string {
+        return `, old: ${this.oldValue}, new: ${this.newValue}`;
     }
 }
 

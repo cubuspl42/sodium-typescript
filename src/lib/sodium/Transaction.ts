@@ -9,12 +9,12 @@ function log(a: any): void {
 }
 
 function visit(stack: Vertex[], vertex: Vertex) {
+  if (vertex.visited) return;
+
   vertex.visited = true;
 
   vertex.dependents?.forEach((v) => {
-    if (!v.visited) {
       visit(stack, v);
-    }
   });
 
   stack.push(vertex);
@@ -49,7 +49,16 @@ export class Transaction {
     const processed = new Set<Vertex>();
 
     while (this.roots.size != 0) {
+      Transaction.log({ 
+        roots: Array.from(this.roots).map((r) => r.describe()),
+      });
+
       const stack = topoSort(this.roots);
+
+      Transaction.log({ 
+        stack: stack.map((v) => v.describe()),
+      });
+
       this.roots.clear();
 
       for (let i = stack.length - 1; i >= 0; i--) {
@@ -76,6 +85,12 @@ export class Transaction {
 
   static enableDebug(flag: boolean) {
     enableDebugFlag = flag;
+  }
+
+  static log(msg: any): void {
+    if (enableDebugFlag) {
+      console.log(msg);
+    }
   }
 
   public static run<A>(f: (t: Transaction) => A): A {

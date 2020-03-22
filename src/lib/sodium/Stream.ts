@@ -98,7 +98,10 @@ export class HoldVertex<A> extends CellVertex<A> {
 
     process(): boolean {
         const na = this.steps.newValue;
-        if (na) {
+
+        Transaction.log(`processing HoldVertex [${this.name ?? ""}], na = ${na}`);
+
+        if (na !== null) {
             this.fire(na);
         }
 
@@ -123,11 +126,14 @@ class FilterVertex<A> extends StreamVertex<A> {
     private readonly f: (a: A) => boolean;
 
     process(): boolean {
-        const a = this.s.newValue;
+        const na = this.s.newValue;
         const f = this.f;
-        if (a === undefined) return false;
-        if (f(a)) {
-            this.fire(a);
+        if (na === undefined) return false;
+        if (f(na)) {
+            Transaction.log(`processing FilterVertex [${this.name ?? ""}], na = ${na}`);
+            this.fire(na);
+        } else {
+            Transaction.log(`processing FilterVertex [${this.name ?? ""}], na = ${na} (filtered out)`);
         }
 
         return false;
@@ -151,10 +157,13 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
     private readonly f: (a: A) => B;
 
     process(): boolean {
-        const a = this.source.newValue;
+        const na = this.source.newValue;
         const f = this.f;
-        if (a === undefined) return false;
-        this.fire(f(a));
+
+        Transaction.log(`processing StreamMapVertex [${this.name ?? ""}], na = ${na}`);
+
+        if (na === undefined) return false;
+        this.fire(f(na));
 
         return false;
     }
@@ -186,6 +195,8 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
         const n1 = this.s1.newValue;
 
         const f = this.f;
+
+        Transaction.log(`processing StreamMergeVertex [${this.name ?? ""}], n0 = ${n0}, n1 = ${n1}`);
 
         if (n0 !== undefined && n1 !== undefined) {
             this.fire(f(n0, n1));
