@@ -9,7 +9,8 @@ import {
   Operational,
   Cell,
   CellLoop,
-  getTotalRegistrations
+  getTotalRegistrations,
+  Stream
 } from '../../lib/Lib';
 
 afterEach(() => {
@@ -467,8 +468,8 @@ test('should test switchS()', (done) => {
   }
 
   const sss = new StreamSink<SS>(),
-    sa = sss.map(s => s.a),
-    sb = sss.map(s => s.b),
+    sa = sss.map(s => s.a).filterNotNull(),
+    sb = sss.map(s => s.b).filterNotNull(),
     csw_str = sss.map(s => s.sw).filterNotNull().hold("sa"),
     // ****
     // NOTE! Because this lambda contains references to Sodium objects, we
@@ -494,9 +495,14 @@ test('should test switchS()', (done) => {
   sss.send(new SS("G", "g", "sb"));
   sss.send(new SS("H", "h", "sa"));
   sss.send(new SS("I", "i", "sa"));
+  sss.send(new SS(null, "j", "sb"));
+  sss.send(new SS("K", null, "sa"));
+  sss.send(new SS("L", null, "sb"));
+  sss.send(new SS(null, "m", "sa"));
   kill();
 
-  expect(["A", "B", "C", "d", "e", "F", "G", "h", "I"]).toEqual(out);
+  // Here events from the old stream are preferred consistently
+  expect(out).toEqual(["A", "B", "C", "d", "e", "F", "G", "h", "I", "L", "m"]);
 });
 
 test('should do switchSSimultaneous', (done) => {
@@ -546,6 +552,103 @@ test('should do switchSSimultaneous', (done) => {
   expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).toEqual(out);
 });
 
+
+test('should test switchS + value', (done) => {
+  const sa = new StreamSink<number>();
+  const ca = new CellSink<number>(0);
+  const out: number[] = [];
+
+  const co = Cell.switchS(
+    sa.map(lambda1((e) => {
+      return Operational.value(ca.map((x) => x * e));
+    }, [sa])).hold(new Stream<number>()),
+  );
+
+  const kill = co.listen(a => {
+    out.push(a);
+  });
+
+  Transaction.run(() => {
+    sa.send(4);
+    ca.send(5);
+  });
+
+  expect(out).toEqual([20]);
+
+  ca.send(3);
+
+  // 20 was coming from the new stream, but was still picked
+  expect(out).toEqual([20, 12]);
+
+  kill();
+  done();
+});
+
+
+test('should test switchS + Stream.map', (done) => {
+  const sa = new StreamSink<number>();
+  const out: number[] = [];
+
+  const co = Cell.switchS(
+    sa.map(lambda1((a) => {
+      return sa.map((a_) => a * a_);
+    }, [sa])).hold(new Stream<number>()),
+  );
+
+  const kill = co.listen(a => {
+    out.push(a);
+  });
+
+  sa.send(4);
+
+  // 16 was produced by the new stream (old one was Never)
+  expect(out).toEqual([16]);
+
+  sa.send(8);
+
+  // Two values per transaction??
+  expect(out).toEqual([16, 32, 64]);
+
+  kill();
+  done();
+});
+
+test('should test switchS + Cell.map', (done) => {
+  const ca = new CellSink<string>("sa");
+  const sa = new StreamSink<number>();
+  const sb = new StreamSink<number>();
+  const out: number[] = [];
+
+  const co = Cell.switchS(ca.map(lambda1((s) => s === "sa" ? sa : sb, [sa, sb])));
+
+  const kill = co.listen(a => {
+    out.push(a);
+  });
+
+  sa.send(4);
+
+  Transaction.run(() => {
+    ca.send("sb");
+    sa.send(-2);
+    sb.send(5);
+  });
+
+  sb.send(16);
+
+  Transaction.run(() => {
+    ca.send("sa");
+    sa.send(10);
+  });
+
+  sa.send(8);
+
+  // Here -2 (from the old stream) was picked...
+  expect(out).toEqual([4, -2, 16, 8]);
+
+  kill();
+  done();
+});
+
 test('should test loopCell', (done) => {
   const sa = new StreamSink<number>(),
     sum_out = Transaction.run(() => {
@@ -574,12 +677,12 @@ test('should test loopCell', (done) => {
 test('should test defer/split memory cycle', done => {
   // We do not fire through sl here, as it would cause an infinite loop.
   // This is just a memory management test.
-  let sl : StreamLoop<number>;
+  let sl: StreamLoop<number>;
   Transaction.run(() => {
     sl = new StreamLoop<number>();
     sl.loop(Operational.defer(sl));
   });
-  let kill = sl.listen(() => {});
+  let kill = sl.listen(() => { });
   kill();
   done();
 });

@@ -4,16 +4,14 @@
 
 import {
     CellSink,
-    Transaction,
-    Cell
+    Transaction
 } from '../../lib/Lib';
 import * as Benchmark from 'benchmark';
 
 function simpleTest() {
     const sink = new CellSink<number>(2);
     const mapped = Transaction.run(() => [...Array(2500).keys()].map((i) => sink.map((a) => a * i)));
-    const terminal = Cell.liftArray(mapped).map((arr) => arr.reduce((a, b) => Math.max(a, b)));
-    terminal.listen((a) => { });
+    mapped.forEach((m) => m.listen(() => { }));
     sink.send(2);
 }
 
