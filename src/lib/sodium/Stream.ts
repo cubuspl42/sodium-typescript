@@ -235,6 +235,34 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
     }
 }
 
+class StreamOnceVertex<A> extends StreamVertex<A> {
+    constructor(
+        s: StreamVertex<A>,
+    ) {
+        super();
+
+        this.s = s;
+
+        s.addDependent(this);
+    }
+
+    private readonly s: StreamVertex<A>;
+
+    private hasFired = false;
+
+    process(): boolean {
+        const na = this.s.newValue;
+ 
+        if (na === undefined || this.hasFired) return false;
+
+        this.fire(na);
+        this.hasFired = true;
+        this.s.dependents.delete(this);
+ 
+        return false;
+    }
+}
+
 export class Stream<A> {
     constructor(vertex?: StreamVertex<A>) {
         this.vertex = vertex || new StreamVertex();
@@ -471,7 +499,7 @@ export class Stream<A> {
      * input stream, starting from the transaction in which once() was invoked.
      */
     once(): Stream<A> {
-        throw new Error();
+        return new Stream(new StreamOnceVertex(this.vertex));
     }
 
     listen(h: (a: A) => void): () => void {
@@ -484,23 +512,44 @@ export class Stream<A> {
     }
 }
 
+export class StreamLoopVertex<A> extends StreamVertex<A> {
+    isLooped = false;
+
+    private source?: StreamVertex<A>;
+
+    constructor() {
+        super();
+    }
+
+    process(): boolean {
+        const a = this.source!.newValue;
+        if (a !== undefined) this.fire(a);
+        return false;
+    }
+
+    loop(source: StreamVertex<A>): void {
+        if (this.isLooped)
+            throw new Error("StreamLoop looped more than once");
+
+        this.source = source;
+
+        source.addDependent(this);
+    }
+}
+
 /**
  * A forward reference for a {@link Stream} equivalent to the Stream that is referenced.
  */
-export class StreamLoop<A> {
-    assigned__: boolean = false;  // to do: Figure out how to hide this
+export class StreamLoop<A> extends Stream<A> {
+    isLooped = false;
+
+    private source?: StreamVertex<A>;
 
     constructor() {
-        throw new Error();
+        super(new StreamLoopVertex());
     }
 
-    /**
-     * Resolve the loop to specify what the StreamLoop was a forward reference to. It
-     * must be invoked inside the same transaction as the place where the StreamLoop is used.
-     * This requires you to create an explicit transaction with {@link Transaction#run(Lambda0)}
-     * or {@link Transaction#runVoid(Runnable)}.
-     */
     loop(sa_out: Stream<A>): void {
-        throw new Error();
+        (this.vertex as StreamLoopVertex<A>).loop(sa_out.vertex);
     }
 }

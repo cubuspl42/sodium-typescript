@@ -125,6 +125,37 @@ test("should test lift", (done) => {
   expect(["1 5", "12 5", "12 6"]).toEqual(out);
 });
 
+test("should test lift2", (done) => {
+  const a = new CellSink<number>(1),
+    b = new CellSink<number>(5),
+    out: string[] = [];
+
+  const c0 = Cell.switchC(a.map((a_) => {
+    return a.lift(b, (x, y) => `${x} ${y}`);
+  }));
+
+
+  const kill = c0.listen(a => {
+    out.push(a);
+    if (out.length === 3) {
+      done();
+    }
+  });
+
+  expect(out).toEqual(["1 5"]);
+
+
+  a.send(12);
+
+  expect(out).toEqual(["1 5"]);
+
+  b.send(6);
+
+  kill();
+
+  expect(out).toEqual(["1 5"]);
+});
+
 test("should test liftGlitch", (done) => {
   console.log(">>> liftGlitch");
 

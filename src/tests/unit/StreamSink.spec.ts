@@ -527,9 +527,11 @@ test('should test switchS()', (done) => {
   sss.send(new SS("I", "i", "sa"));
   sss.send(new SS(null, "j", "sb"));
   sss.send(new SS("K", null, "sa"));
+  sss.send(new SS("L", null, "sb"));
+  sss.send(new SS(null, "m", "sa"));
   kill();
 
-  expect(out).toEqual(["A", "B", "C", "d", "e", "F", "G", "h", "I", "j", "K"]);
+  expect(out).toEqual(["A", "B", "C", "d", "e", "F", "G", "h", "I", "j", "K", "L", "m"]);
 });
 
 test('should do switchSSimultaneous', (done) => {
