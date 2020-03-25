@@ -104,9 +104,9 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
         const na = this.ca.newValue;
         const nb = this.cb.newValue;
 
-        if (na || nb) {
-            const a = na || this.ca.oldValue;
-            const b = nb || this.cb.oldValue;
+        if (na !== undefined || nb !== undefined) {
+            const a = na ?? this.ca.oldValue;
+            const b = nb ?? this.cb.oldValue;
             const f = this.f;
             this.fire(f(a, b));
         }
@@ -173,13 +173,20 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         const ne = this.ce?.newValue;
         const nf = this.cf?.newValue;
 
-        if (na || nb || nc || nd || ne || nf) {
-            const a = na || this.ca?.oldValue;
-            const b = nb || this.cb?.oldValue;
-            const c = nc || this.cc?.oldValue;
-            const d = nd || this.cd?.oldValue;
-            const e = ne || this.ce?.oldValue;
-            const f = nf || this.cf?.oldValue;
+        if (
+            na !== undefined ||
+            nb !== undefined ||
+            nc !== undefined ||
+            nd !== undefined ||
+            ne !== undefined ||
+            nf !== undefined
+        ) {
+            const a = na ?? this.ca?.oldValue;
+            const b = nb ?? this.cb?.oldValue;
+            const c = nc ?? this.cc?.oldValue;
+            const d = nd ?? this.cd?.oldValue;
+            const e = ne ?? this.ce?.oldValue;
+            const f = nf ?? this.cf?.oldValue;
 
             const fn = this.f;
 
@@ -379,7 +386,7 @@ export class Cell<A> {
 	 */
     lift3<B, C, D>(b: Cell<B>, c: Cell<C>,
         fn0: (a: A, b: B, c: C) => D): Cell<D> {
-        throw new Error();
+        return this._lift6((a, b, c) => fn0(a!, b!, c!), b, c);
     }
 
 	/**
@@ -414,8 +421,8 @@ export class Cell<A> {
         fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
     ): Cell<G> {
         return this._lift6(
-          fn0 as (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G,
-          b, c, d, e, f,
+            fn0 as (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G,
+            b, c, d, e, f,
         );
     }
 

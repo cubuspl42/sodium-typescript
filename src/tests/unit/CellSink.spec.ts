@@ -147,7 +147,6 @@ test("should test lift2", (done) => {
 
   a.send(12);
 
-  expect(out).toEqual(["1 5"]);
 
   b.send(6);
 
