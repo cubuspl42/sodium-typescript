@@ -65,9 +65,9 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
         const nf = this.cf.newValue;
         const na = this.ca.newValue;
 
-        if (nf || na) { // TODO: Switch to ??
-            const f = nf || this.cf.oldValue;
-            const a = na || this.ca.oldValue;
+        if (nf !== undefined || na !== undefined) { // TODO: Switch to ??
+            const f = nf ?? this.cf.oldValue;
+            const a = na ?? this.ca.oldValue;
             this.fire(f(a));
         }
 
@@ -214,8 +214,8 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     }
 
     process(): boolean {
-        if (this.caa.some((ca) => !!ca.vertex.newValue)) {
-            const na = this.caa.map((ca) => ca.vertex.newValue || ca.vertex.oldValue);
+        if (this.caa.some((ca) => ca.vertex.newValue !== undefined)) {
+            const na = this.caa.map((ca) => ca.vertex.newValue ?? ca.vertex.oldValue);
             this.fire(na);
         }
         return false;
@@ -257,12 +257,12 @@ class SwitchCVertex<A> extends CellVertex<A> {
             }
         }
 
-        const ca = nca || oca;
-        const na = ca.newValue || ca.oldValue;
+        const ca = nca ?? oca;
+        const na = ca.newValue ?? ca.oldValue;
 
         Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], firing, na = ${na}`);
 
-        if (!!na) {
+        if (na !== undefined) {
             this.fire(na);
         }
 

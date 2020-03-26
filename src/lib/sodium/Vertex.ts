@@ -83,7 +83,7 @@ export class CellVertex<A> extends StreamVertex<A> {
     }
 
     update() {
-        this._oldValue = this.newValue || this.oldValue;
+        this._oldValue = this.newValue ?? this.oldValue;
         super.update();
     }
 
