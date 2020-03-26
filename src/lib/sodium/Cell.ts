@@ -246,16 +246,21 @@ class SwitchCVertex<A> extends CellVertex<A> {
         Transaction.log(`processing SwitchCVertex [${this.name ?? ""}]`);
 
         if (nca !== undefined && !nca.dependents.has(this)) {
-            Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], resort is needed...`);
+            Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], new dependency, nca: ${nca.describe()}`);
+
             oca.dependents.delete(this);
             nca.addDependent(this);
-            return true;
+
+            if (!nca.visited) {
+                Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], resort is needed...`);
+                return true;
+            }
         }
 
         const ca = nca || oca;
         const na = ca.newValue || ca.oldValue;
 
-        Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], after resort, na = ${na}`);
+        Transaction.log(`processing SwitchCVertex [${this.name ?? ""}], firing, na = ${na}`);
 
         if (!!na) {
             this.fire(na);

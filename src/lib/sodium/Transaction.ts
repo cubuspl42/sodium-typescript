@@ -74,9 +74,12 @@ export class Transaction {
           }
           break;
         }
+
+        vertex.visited = true;
       }
     }
 
+    processed.forEach((v) => v.reset());
     processed.forEach((v) => v.notify());
     processed.forEach((v) => v.update());
   }
