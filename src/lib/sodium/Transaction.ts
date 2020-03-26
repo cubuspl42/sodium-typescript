@@ -49,15 +49,15 @@ export class Transaction {
     const processed = new Set<Vertex>();
 
     while (this.roots.size != 0) {
-      Transaction.log({ 
+      Transaction.log(() => ({
         roots: Array.from(this.roots).map((r) => r.describe()),
-      });
+      }));
 
       const stack = topoSort(this.roots);
 
-      Transaction.log({ 
+      Transaction.log(() => ({ 
         stack: stack.map((v) => v.describe()),
-      });
+      }));
 
       this.roots.clear();
 
@@ -75,11 +75,10 @@ export class Transaction {
           break;
         }
 
-        vertex.visited = true;
+        vertex.processed = true;
       }
     }
 
-    processed.forEach((v) => v.reset());
     processed.forEach((v) => v.notify());
     processed.forEach((v) => v.update());
   }
@@ -90,9 +89,9 @@ export class Transaction {
     enableDebugFlag = flag;
   }
 
-  static log(msg: any): void {
+  static log(msg: () => any): void {
     if (enableDebugFlag) {
-      console.log(msg);
+      console.log(msg());
     }
   }
 

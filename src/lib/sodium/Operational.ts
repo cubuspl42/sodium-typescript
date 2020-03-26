@@ -21,14 +21,14 @@ class ValueVertex<A> extends StreamVertex<A> {
 
     process(): boolean {
         if (!this.isInitialized) {
-            Transaction.log(`processing ${this.describe()}, source = ${this.source.describe()}, initializing...`);
+            Transaction.log(() => `processing ${this.describe()}, source = ${this.source.describe()}, initializing...`);
             this.fire(this.source.oldValue);
             this.isInitialized = true;
         }
 
         const na = this.source.newValue;
 
-        Transaction.log(`processing ${this.describe()}, na = ${na}`);
+        Transaction.log(() => `processing ${this.describe()}, na = ${na}`);
 
         if (na === undefined) return false;
         this.fire(na);
