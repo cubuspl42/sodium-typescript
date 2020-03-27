@@ -34,7 +34,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
     process(): boolean {
         const na = this.source.newValue;
 
-        Transaction.log(() => `processing CellMapVertex [${this.name ?? ""}], na = ${na}`);
+        Transaction.log(() => `processing CellMapVertex [${this.name ?? ""}], na = ${na instanceof Cell ? na.vertex.describe() : na}`);
 
         if (na === undefined) return false;
         const b = this.f(na);

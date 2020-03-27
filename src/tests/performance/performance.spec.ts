@@ -51,7 +51,7 @@ test('should test switchC performance', (done) => {
         const csw = new CellSink<string>("ca");
         const cc = csw.map(lambda1((sw) => sw === "ca" ? { c: ca } : { c: cb }, [ca, cb]));
 
-        const mapped = range(500).map((i) => Cell.switchC(cc.map(x => x.c)).map(a => a * i));
+        const mapped = range(500).map((i) => Cell.switchC(cc.map(x => x.c.map(a => a * 2))).map(a => a * i));
         const terminal = Cell.liftArray(mapped).map((arr) => arr.reduce((a, b) => Math.max(a, b)));
         terminal.listen(() => { });
 
