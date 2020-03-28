@@ -7,78 +7,71 @@ import { CellLoop } from "./CellLoop";
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     constructor(
-        stream: Stream<A>,
-        cell: Cell<B>,
+        sa: StreamVertex<A>,
+        cb: CellVertex<B>,
         f: (a: A, b: B) => C,
     ) {
         super();
 
         this.f = f;
-        this.stream = stream;
-        this.cell = cell;
+        this.sa = sa;
+        this.cb = cb;
 
-        stream.vertex.addDependent(this);
+        sa.addDependent(this);
     }
 
-    private readonly stream: Stream<A>;
-    private readonly cell: Cell<B>;
+    private readonly sa: StreamVertex<A>;
+    private readonly cb: CellVertex<B>;
     private readonly f: (a: A, b: B) => C;
 
-    process(): boolean {
-        const a = this.stream.vertex.newValue;
-
-        if (a === undefined) return false;
-
-        const b = this.cell.vertex.oldValue;
-        const c = this.f(a, b);
-        this.fire(c);
-
-        return false;
+    buildNewValue(): C | undefined {
+        const f = this.f;
+        const na = this.sa.newValue;
+        const b = this.cb.oldValue;
+        const nb = na !== undefined ? f(na, b) : undefined;
+        return nb;
     }
 }
 
 class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
     constructor(
-        stream: Stream<A>,
-        cb: Cell<B>,
-        cc: Cell<C>,
-        cd: Cell<D>,
+        sa: StreamVertex<A>,
+        cb: CellVertex<B>,
+        cc: CellVertex<C>,
+        cd: CellVertex<D>,
         f: (a: A, b: B, c: C, d: D) => E,
     ) {
         super();
 
         this.f = f;
-        this.stream = stream;
-
+        this.sa = sa;
         this.cb = cb;
         this.cc = cc;
         this.cd = cd;
 
-        stream.vertex.addDependent(this);
+        sa.addDependent(this);
     }
 
-    private readonly stream: Stream<A>;
-
-    private readonly cb: Cell<B>;
-    private readonly cc: Cell<C>;
-    private readonly cd: Cell<D>;
+    private readonly sa: StreamVertex<A>;
+    private readonly cb: CellVertex<B>;
+    private readonly cc: CellVertex<C>;
+    private readonly cd: CellVertex<D>;
 
     private readonly f: (a: A, b: B, c: C, d: D) => E;
 
-    process(): boolean {
-        const a = this.stream.vertex.newValue;
+    buildNewValue(): E | undefined {
+        const na = this.sa.newValue;
 
-        if (a === undefined) return false;
+        if (na === undefined) return undefined;
 
-        const b = this.cb.vertex.oldValue;
-        const c = this.cc.vertex.oldValue;
-        const d = this.cd.vertex.oldValue;
+        const f = this.f;
+        const b = this.cb.oldValue;
+        const c = this.cc.oldValue;
+        const d = this.cd.oldValue;
 
-        const e = this.f(a, b, c, d);
+        const e = f(na, b, c, d);
 
-        this.fire(e);
-
-        return false;
+        return e;
     }
 }
 
@@ -96,16 +89,9 @@ export class HoldVertex<A> extends CellVertex<A> {
 
     private readonly steps: StreamVertex<A>;
 
-    process(): boolean {
+    buildNewValue(): A | undefined {
         const na = this.steps.newValue;
-
-        Transaction.log(() => `processing HoldVertex [${this.name ?? ""}], na = ${na}`);
-
-        if (na !== null) {
-            this.fire(na);
-        }
-
-        return false;
+        return na;
     }
 }
 
@@ -125,18 +111,17 @@ class FilterVertex<A> extends StreamVertex<A> {
     private readonly s: StreamVertex<A>;
     private readonly f: (a: A) => boolean;
 
-    process(): boolean {
+    buildNewValue(): A | undefined {
         const na = this.s.newValue;
         const f = this.f;
-        if (na === undefined) return false;
-        if (f(na)) {
-            Transaction.log(() => `processing FilterVertex [${this.name ?? ""}], na = ${na}`);
-            this.fire(na);
-        } else {
-            Transaction.log(() => `processing FilterVertex [${this.name ?? ""}], na = ${na} (filtered out)`);
-        }
 
-        return false;
+        if (na === undefined) return undefined;
+
+        if (f(na)) {
+            return na;
+        } else {
+            return undefined;
+        }
     }
 }
 
@@ -156,16 +141,11 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
     private readonly source: StreamVertex<A>;
     private readonly f: (a: A) => B;
 
-    process(): boolean {
-        const na = this.source.newValue;
+    buildNewValue(): B | undefined {
         const f = this.f;
-
-        Transaction.log(() => `processing StreamMapVertex [${this.name ?? ""}], na = ${na}`);
-
-        if (na === undefined) return false;
-        this.fire(f(na));
-
-        return false;
+        const na = this.source.newValue;
+        const nb = na !== undefined ? f(na) : undefined;
+        return nb;
     }
 }
 
@@ -190,23 +170,20 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
 
     private readonly f: (a0: A, a1: A) => A;
 
-    process(): boolean {
+    buildNewValue(): A | undefined {
+        const f = this.f;
         const n0 = this.s0.newValue;
         const n1 = this.s1.newValue;
 
-        const f = this.f;
-
-        Transaction.log(() => `processing StreamMergeVertex [${this.name ?? ""}], n0 = ${n0}, n1 = ${n1}`);
-
         if (n0 !== undefined && n1 !== undefined) {
-            this.fire(f(n0, n1));
+            return f(n0, n1);
         } else if (n0 !== undefined) {
-            this.fire(n0);
+            return n0;
         } else if (n1 !== undefined) {
-            this.fire(n1);
+            return n1;
+        } else {
+            return undefined;
         }
-
-        return false;
     }
 }
 
@@ -223,15 +200,15 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
 
     private readonly streams: Stream<A>[];
 
-    process(): boolean {
+    buildNewValue(): A | undefined {
         const s = this.streams.find((s) => s.vertex.newValue !== undefined);
         const na = s?.vertex.newValue;
 
         if (na !== undefined) {
-            this.fire(na);
+            return na;
+        } else {
+            return undefined;
         }
-
-        return false;
     }
 }
 
@@ -250,16 +227,15 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
 
     private hasFired = false;
 
-    process(): boolean {
+    buildNewValue(): A | undefined {
         const na = this.s.newValue;
- 
-        if (na === undefined || this.hasFired) return false;
 
-        this.fire(na);
+        if (na === undefined || this.hasFired) return undefined;
+
         this.hasFired = true;
         this.s.dependents.delete(this);
- 
-        return false;
+
+        return na;
     }
 }
 
@@ -347,9 +323,10 @@ export class Stream<A> {
      * Return a stream that only outputs events from the input stream
      * when the specified cell's value is true.
      */
-    gate(c: Cell<boolean>): Stream<A> {
-        throw new Error();
-
+    gate(c : Cell<boolean>) : Stream<A> {
+        return this.snapshot(c, (a : A, pred : boolean) => {
+            return pred ? a : null;
+        }).filterNotNull();
     }
 
 	/**
@@ -357,7 +334,7 @@ export class Stream<A> {
 	 * at the time of the event firing, ignoring the stream's value.
 	 */
     snapshot1<B>(c: Cell<B>): Stream<B> {
-        return new Stream(new SnapshotVertex(this, c, (_, b) => b));
+        return new Stream(new SnapshotVertex(this.vertex, c.vertex, (_, b) => b));
     }
 
 	/**
@@ -371,7 +348,7 @@ export class Stream<A> {
      * transaction.
      */
     snapshot<B, C>(b: Cell<B>, f: (a: A, b: B) => C): Stream<C> {
-        return new Stream(new SnapshotVertex(this, b, f));
+        return new Stream(new SnapshotVertex(this.vertex, b.vertex, f));
     }
 
 	/**
@@ -400,7 +377,8 @@ export class Stream<A> {
      */
     snapshot4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
         f_: (a: A, b: B, c: C, d: D) => E): Stream<E> {
-        return new Stream(new Snapshot4Vertex<A, B, C, D, E>(this, b, c, d, f_));
+        return new Stream(new Snapshot4Vertex<A, B, C, D, E>(
+            this.vertex, b.vertex, c.vertex, d.vertex, f_));
     }
 
 	/**
@@ -521,10 +499,9 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
         super();
     }
 
-    process(): boolean {
-        const a = this.source!.newValue;
-        if (a !== undefined) this.fire(a);
-        return false;
+    buildNewValue(): A | undefined {
+        // TODO: Better exception message?
+        return this.source!.newValue;
     }
 
     loop(source: StreamVertex<A>): void {

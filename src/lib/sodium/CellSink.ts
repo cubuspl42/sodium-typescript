@@ -1,7 +1,7 @@
 import { Cell } from "./Cell";
 import { StreamSink } from "./StreamSink";
 import { Transaction } from "./Transaction";
-import { CellVertex } from "./Vertex";
+import { CellVertex, CellSinkVertex } from "./Vertex";
 
 /**
  * A cell that allows values to be pushed into it, acting as an interface between the
@@ -16,7 +16,7 @@ export class CellSink<A> extends Cell<A> {
      * If the function is not supplied, then an exception will be thrown in this case.
      */
     constructor(initValue: A, f?: (l: A, r: A) => A) {
-        super(undefined, undefined, new CellVertex(initValue));
+        super(undefined, undefined, new CellSinkVertex(initValue));
     }
 
     /**
@@ -28,7 +28,7 @@ export class CellSink<A> extends Cell<A> {
      */
     send(a: A): void {
         Transaction.run((t) => {
-            const vertex = this.vertex;
+            const vertex = this.vertex as CellSinkVertex<A>;
             vertex.fire(a);
             vertex.processed = true;
             t.addRoot(vertex);

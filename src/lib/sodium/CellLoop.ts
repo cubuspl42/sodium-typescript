@@ -15,14 +15,12 @@ class CellLoopVertex<A> extends CellVertex<A> {
             throw new Error("StreamLoop/CellLoop must be used within an explicit transaction");
     }
 
-    buildValue(): A {
+    buildOldValue(): A {
         return this.source!.oldValue;
     }
 
-    process(): boolean {
-        const a = this.source!.newValue;
-        if (a !== undefined) this.fire(a);
-        return false;
+    buildNewValue(): A {
+        return this.source!.newValue;
     }
 
     loop(source: CellVertex<A>): void {

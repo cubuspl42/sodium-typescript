@@ -12,18 +12,14 @@ export abstract class Vertex {
 
     visited = false;
 
-    processed = false;
-
-    reset(): void {
+    reset(): void { // TODO: remove?
         this.visited = false;
     }
 
     notify(): void { }
 
-    abstract process(): boolean;
-
     update(): void {
-        this.processed = false;
+        this.visited = false;
     }
 
     refCount(): number {
@@ -31,7 +27,7 @@ export abstract class Vertex {
     }
 
     describe(): string {
-        return `${this.constructor.name} {name: ${this.name ?? "unnamed"}, processed: ${this.processed}${this.describe_()}}`;
+        return `${this.constructor.name} {name: ${this.name ?? "unnamed"}${this.describe_()}}`;
     }
 
     describe_(): string {
@@ -40,22 +36,41 @@ export abstract class Vertex {
 }
 
 export class StreamVertex<A> extends Vertex {
+    processed = false;
+
     readonly dependents = new Set<Vertex>();
 
-    newValue?: A;
+    _newValue?: A;
 
-    visited = false;
+    get newValue(): A | undefined {
+        // if (this.visited) {
+        //     const value = this.processed ? this._newValue : this.buildNewValue();
+        //     this._newValue = value;
+        //     this.processed = true;
+        //     return value;
+        // } else {
+        //     return undefined;
+        // }
 
-    fire(a: A) {
-        this.newValue = a;
+        if (this._newValue !== undefined) {
+            return this._newValue;
+        } else if (this.visited && !this.processed) {
+            const value = this.buildNewValue();
+            this._newValue = value;
+            this.processed = true;
+            return value;
+        } else {
+            return undefined;
+        }
     }
 
-    process(): boolean {
-        return false;
+    buildNewValue(): A | undefined {
+        return undefined;
     }
 
     update(): void {
-        this.newValue = undefined;
+        this._newValue = undefined;
+        this.processed = false;
         super.update();
     }
 
@@ -64,7 +79,17 @@ export class StreamVertex<A> extends Vertex {
     }
 
     describe_(): string {
-        return `, new: ${this.newValue}`;
+        return `, processed: ${this.processed}, new: ${this.newValue}`;
+    }
+}
+
+export class StreamSinkVertex<A> extends StreamVertex<A> {
+    buildNewValue(): A | undefined {
+        return undefined;
+    }
+
+    fire(a: A) {
+        this._newValue = a;
     }
 }
 
@@ -73,7 +98,7 @@ export class CellVertex<A> extends StreamVertex<A> {
 
     get oldValue(): A {
         if (this._oldValue === undefined) {
-            this._oldValue = this.buildValue();
+            this._oldValue = this.buildOldValue();
         }
         return this._oldValue;
     }
@@ -81,16 +106,15 @@ export class CellVertex<A> extends StreamVertex<A> {
     constructor(initValue?: A, newValue?: A) {
         super();
         this._oldValue = initValue;
-        this.newValue = newValue;
+        this._newValue = newValue;
     }
 
-    process(): boolean {
-        Transaction.log(() => `processing CellVertex [${this.name ?? ""}]`);
-        return false;
-    }
-
-    buildValue(): A {
+    buildOldValue(): A {
         throw new Error("Unimplemented");
+    }
+
+    buildNewValue(): A | undefined {
+        return undefined;
     }
 
     update() {
@@ -100,6 +124,12 @@ export class CellVertex<A> extends StreamVertex<A> {
 
     describe_(): string {
         return `, old: ${this.oldValue}, new: ${this.newValue}`;
+    }
+}
+
+export class CellSinkVertex<A> extends CellVertex<A> {
+    fire(a: A): void {
+        this._newValue = a;
     }
 }
 
@@ -147,8 +177,5 @@ export class ListenerVertex<A> extends Vertex {
 
     process() {
         return false;
-    }
-
-    update(): void {
     }
 }

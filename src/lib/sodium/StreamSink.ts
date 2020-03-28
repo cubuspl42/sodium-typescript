@@ -1,6 +1,6 @@
 import { Stream } from "./Stream";
 import { Transaction } from "./Transaction";
-import { StreamVertex } from './Vertex';
+import { StreamVertex, StreamSinkVertex } from './Vertex';
 
 /**
  * A stream that allows values to be pushed into it, acting as an interface between the
@@ -9,12 +9,12 @@ import { StreamVertex } from './Vertex';
  */
 export class StreamSink<A> extends Stream<A> {
     constructor(f?: (l: A, r: A) => A) {
-        super(new StreamVertex());
+        super(new StreamSinkVertex());
     }
 
     send(a: A): void {
         Transaction.run((t) => {
-            const vertex = this.vertex;
+            const vertex = this.vertex as StreamSinkVertex<A>;
             vertex.fire(a);
             t.addRoot(vertex);
         });

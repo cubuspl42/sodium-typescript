@@ -15,7 +15,6 @@ class CellMapVertex<A, B> extends CellVertex<B> {
 
         this.f = f;
         this.source = source;
-        this.processed = source.processed;
 
         Transaction.log(() => `constructing CellMapVertex source = ${source.describe()}`);
 
@@ -25,21 +24,17 @@ class CellMapVertex<A, B> extends CellVertex<B> {
     private readonly source: CellVertex<A>;
     private readonly f: (a: A) => B;
 
-    buildValue(): B {
+    buildOldValue(): B {
         const f = this.f;
         const na = f(this.source.oldValue);
         return na;
     }
 
-    process(): boolean {
+    buildNewValue(): B | undefined {
+        const f = this.f;
         const na = this.source.newValue;
-
-        Transaction.log(() => `processing CellMapVertex [${this.name ?? ""}], na = ${na instanceof Cell ? na.vertex.describe() : na}`);
-
-        if (na === undefined) return false;
-        const b = this.f(na);
-        this.fire(b);
-        return false;
+        const nb = na !== undefined ? f(na) : undefined;
+        return nb;
     }
 }
 
@@ -60,22 +55,22 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
     private readonly cf: CellVertex<(a: A) => B>;
     private readonly ca: CellVertex<A>;
 
-    buildValue(): B {
+    buildOldValue(): B {
         const f = this.cf.oldValue;
         return f(this.ca.oldValue);
     }
 
-    process(): boolean {
+    buildNewValue(): B | undefined {
         const nf = this.cf.newValue;
         const na = this.ca.newValue;
 
-        if (nf !== undefined || na !== undefined) { // TODO: Switch to ??
+        if (nf !== undefined || na !== undefined) {
             const f = nf ?? this.cf.oldValue;
             const a = na ?? this.ca.oldValue;
-            this.fire(f(a));
+            return f(a);
+        } else {
+            return undefined;
         }
-
-        return false;
     }
 }
 
@@ -99,23 +94,23 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     private readonly cb: CellVertex<B>;
     private readonly f: (a: A, b: B) => C;
 
-    buildValue(): C {
+    buildOldValue(): C {
         const f = this.f;
         return f(this.ca.oldValue, this.cb.oldValue);
     }
 
-    process(): boolean {
+    buildNewValue(): C | undefined {
         const na = this.ca.newValue;
         const nb = this.cb.newValue;
 
         if (na !== undefined || nb !== undefined) {
+            const f = this.f;
             const a = na ?? this.ca.oldValue;
             const b = nb ?? this.cb.oldValue;
-            const f = this.f;
-            this.fire(f(a, b));
+            return f(a, b);
+        } else {
+            return undefined;
         }
-
-        return false;
     }
 }
 
@@ -157,7 +152,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
 
     private readonly f: (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G;
 
-    buildValue(): G {
+    buildOldValue(): G {
         const f = this.f;
         return f(
             this.ca?.oldValue,
@@ -169,7 +164,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         );
     }
 
-    process(): boolean {
+    buildNewValue(): G | undefined {
         const na = this.ca?.newValue;
         const nb = this.cb?.newValue;
         const nc = this.cc?.newValue;
@@ -194,10 +189,10 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
 
             const fn = this.f;
 
-            this.fire(fn(a, b, c, d, e, f));
+            return fn(a, b, c, d, e, f);
+        } else {
+            return undefined;
         }
-
-        return false;
     }
 }
 
@@ -213,16 +208,17 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
 
     private readonly caa: Cell<A>[];
 
-    buildValue(): A[] {
+    buildOldValue(): A[] {
         return this.caa.map(a => a.vertex.oldValue);
     }
 
-    process(): boolean {
+    buildNewValue(): A[] | undefined {
         if (this.caa.some((ca) => ca.vertex.newValue !== undefined)) {
             const na = this.caa.map((ca) => ca.vertex.newValue ?? ca.vertex.oldValue);
-            this.fire(na);
+            return na;
+        } else {
+            return undefined;
         }
-        return false;
     }
 }
 
@@ -237,40 +233,23 @@ class SwitchCVertex<A> extends CellVertex<A> {
 
     private readonly cca: CellVertex<Cell<A>>;
 
-    buildValue(): A {
+    buildOldValue(): A {
         const ca = this.cca.oldValue;
         ca.vertex.addDependent(this);
         return ca.vertex.oldValue;
     }
 
-    process(): boolean {
+    buildNewValue(): A | undefined {
         const oca = this.cca.oldValue.vertex;
         const nca = this.cca.newValue?.vertex;
 
-        Transaction.log(() => `processing SwitchCVertex [${this.name ?? ""}]`);
-
-        if (nca !== undefined && !nca.dependents.has(this)) {
-            Transaction.log(() => `processing SwitchCVertex [${this.name ?? ""}], new dependency, nca: ${nca.describe()}`);
-
+        if (nca !== undefined) {
             oca.dependents.delete(this);
             nca.addDependent(this);
-
-            if (!nca.processed) {
-                Transaction.log(() => `processing SwitchCVertex [${this.name ?? ""}], resort is needed...`);
-                return true;
-            }
+            return nca.newValue ?? nca.oldValue;
+        } else {
+            return oca.newValue;
         }
-
-        const ca = nca ?? oca;
-        const na = ca.newValue ?? ca.oldValue;
-
-        Transaction.log(() => `processing SwitchCVertex [${this.name ?? ""}], firing, na = ${na}`);
-
-        if (na !== undefined) {
-            this.fire(na);
-        }
-
-        return false;
     }
 }
 
@@ -286,29 +265,16 @@ class SwitchSVertex<A> extends StreamVertex<A> {
 
     private readonly csa: CellVertex<Stream<A>>;
 
-    process(): boolean {
+    buildNewValue(): A | undefined {
         const osa = this.csa.oldValue.vertex;
         const nsa = this.csa.newValue?.vertex;
 
-        Transaction.log(() => `processing SwitchSVertex [${this.name ?? ""}], osa = ${osa.describe()}, nsa = ${nsa?.describe()}`);
-
-        if (nsa !== undefined && !nsa.dependents.has(this)) {
-            Transaction.log(() => `processing SwitchSVertex [${this.name ?? ""}], switching...`);
+        if (nsa !== undefined) {
             osa.dependents.delete(this);
             nsa.addDependent(this);
-
-            return true;
         }
 
-        const na = osa?.newValue ?? nsa?.newValue;
-
-        Transaction.log(() => `processing SwitchSVertex [${this.name ?? ""}], na = ${na}`);
-
-        if (na !== undefined) {
-            this.fire(na);
-        }
-
-        return false;
+        return osa.newValue;
     }
 }
 

@@ -1,4 +1,4 @@
-import { Vertex } from './Vertex';
+import { Vertex, ListenerVertex } from './Vertex';
 
 let enableDebugFlag = false;
 
@@ -8,16 +8,16 @@ function log(a: any): void {
   }
 }
 
-function visit(stack: Vertex[], vertex: Vertex) {
+function visit(set: Set<Vertex>, vertex: Vertex) {
   if (vertex.visited) return;
 
   vertex.visited = true;
 
   vertex.dependents?.forEach((v) => {
-      visit(stack, v);
+    visit(set, v);
   });
 
-  stack.push(vertex);
+    set.add(vertex);
 }
 
 export class Transaction {
@@ -30,57 +30,25 @@ export class Transaction {
   }
 
   close(): void {
-    const topoSort = (roots: Set<Vertex>) => {
-      const stack: Vertex[] = [];
-
-      const desc = (vertex: Vertex) => {
-        return `${vertex.constructor.name} [${vertex?.name || "unnamed"}]`;
-      }
+    const dfs = (roots: Set<Vertex>): Set<Vertex> => {
+      const set = new Set<Vertex>();
 
       roots.forEach((v) => {
-        visit(stack, v);
+        visit(set, v);
       });
 
-      stack.forEach((v) => v.reset());
-
-      return stack;
+      return set;
     }
 
-    const processed = new Set<Vertex>();
+    const visited = dfs(this.roots);
+    this.roots.clear();
 
-    while (this.roots.size != 0) {
-      Transaction.log(() => ({
-        roots: Array.from(this.roots).map((r) => r.describe()),
-      }));
+    // TODO: effects/update order
+    visited.forEach((v) => {
+      v.notify();
+    });
 
-      const stack = topoSort(this.roots);
-
-      Transaction.log(() => ({ 
-        stack: stack.map((v) => v.describe()),
-      }));
-
-      this.roots.clear();
-
-      for (let i = stack.length - 1; i >= 0; i--) {
-        const vertex = stack[i];
-        const isResortNeeded = vertex.process();
-        processed.add(vertex);
-
-        if (isResortNeeded) {
-          log(`isResortNeeded`);
-          for (let j = 0; j <= i; ++j) {
-            const vertex_ = stack[j];
-            this.roots.add(vertex_);
-          }
-          break;
-        }
-
-        vertex.processed = true;
-      }
-    }
-
-    processed.forEach((v) => v.notify());
-    processed.forEach((v) => v.update());
+    visited.forEach((l) => l.update());
   }
 
   static currentTransaction?: Transaction;

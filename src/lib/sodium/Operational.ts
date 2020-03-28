@@ -19,21 +19,13 @@ class ValueVertex<A> extends StreamVertex<A> {
 
     readonly source: CellVertex<A>;
 
-    process(): boolean {
-        if (!this.isInitialized) {
-            Transaction.log(() => `processing ${this.describe()}, source = ${this.source.describe()}, initializing...`);
-            this.fire(this.source.oldValue);
-            this.isInitialized = true;
-        }
-
+    buildNewValue(): A | undefined {
+        const oa = this.isInitialized ? undefined : this.source.oldValue;
         const na = this.source.newValue;
 
-        Transaction.log(() => `processing ${this.describe()}, na = ${na}`);
+        this.isInitialized = true;
 
-        if (na === undefined) return false;
-        this.fire(na);
-
-        return false;
+        return na ?? oa;
     }
 }
 
