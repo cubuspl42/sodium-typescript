@@ -153,7 +153,6 @@ function collectWhite(s: GcNode, white: Set<GcNode>): void {
         s.trace(t => {
             collectWhite(t, white);
         });
-        s.refCount = s.refCount + 1;
         white.add(s);
     }
 }
