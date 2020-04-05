@@ -29,7 +29,7 @@ test('should test constantCell', (done) => {
 });
 
 test('cellLiftArray', () => {
-  const out: number[][] = [];
+  const out: (readonly number[])[] = [];
   const ss1 = new StreamSink<number>();
   const cs = new CellSink<number>(1);
   const c1 = ss1.accum(0, (a, b) => a + b);

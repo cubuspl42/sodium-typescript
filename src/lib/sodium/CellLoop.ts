@@ -15,8 +15,16 @@ class CellLoopVertex<A> extends CellVertex<A> {
             throw new Error("StreamLoop/CellLoop must be used within an explicit transaction");
     }
 
-    buildOldValue(): A {
-        return this.source!.oldValue;
+    initialize(): void {
+        if (this.source === undefined)
+            throw new Error(`Attempted to initalize a CellLoop before it was looped`);
+
+        this.source.addDependent(this);
+        this._oldValue = this.source!.oldValue;
+    }
+
+    uninitialize(): void {
+        this.source.removeDependent(this);
     }
 
     buildNewValue(): A {
@@ -28,8 +36,6 @@ class CellLoopVertex<A> extends CellVertex<A> {
             throw new Error("CellLoop looped more than once");
 
         this.source = source;
-
-        source.addDependent(this);
     }
 }
 /**

@@ -16,13 +16,21 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         this.f = f;
         this.sa = sa;
         this.cb = cb;
-
-        sa.addDependent(this);
     }
 
     private readonly sa: StreamVertex<A>;
     private readonly cb: CellVertex<B>;
     private readonly f: (a: A, b: B) => C;
+
+    initialize(): void {
+        this.sa.addDependent(this);
+        this.cb.incRefCount(); // (?)
+    }
+
+    uninitialize(): void {
+        this.cb.decRefCount(); // (?)
+        this.sa.removeDependent(this);
+    }
 
     buildNewValue(): C | undefined {
         const f = this.f;
@@ -48,8 +56,6 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
         this.cb = cb;
         this.cc = cc;
         this.cd = cd;
-
-        sa.addDependent(this);
     }
 
     private readonly sa: StreamVertex<A>;
@@ -58,6 +64,20 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
     private readonly cd: CellVertex<D>;
 
     private readonly f: (a: A, b: B, c: C, d: D) => E;
+
+    initialize(): void {
+        this.sa.addDependent(this);
+        this.cb.incRefCount();
+        this.cc.incRefCount();
+        this.cd.incRefCount();
+    }
+
+    uninitialize(): void {
+        this.cd.incRefCount();
+        this.cc.incRefCount();
+        this.cb.incRefCount();
+        this.sa.addDependent(this);
+    }
 
     buildNewValue(): E | undefined {
         const na = this.sa.newValue;
@@ -83,11 +103,17 @@ export class HoldVertex<A> extends CellVertex<A> {
         super(initValue);
 
         this.steps = steps;
-
-        steps.addDependent(this);
     }
 
     private readonly steps: StreamVertex<A>;
+
+    initialize(): void {
+        this.steps.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.steps.removeDependent(this);
+    }
 
     buildNewValue(): A | undefined {
         const na = this.steps.newValue;
@@ -97,22 +123,28 @@ export class HoldVertex<A> extends CellVertex<A> {
 
 class FilterVertex<A> extends StreamVertex<A> {
     constructor(
-        s: StreamVertex<A>,
+        source: StreamVertex<A>,
         f: (a: A) => boolean,
     ) {
         super();
 
-        this.s = s;
+        this.source = source;
         this.f = f;
-
-        s.addDependent(this);
     }
 
-    private readonly s: StreamVertex<A>;
+    private readonly source: StreamVertex<A>;
     private readonly f: (a: A) => boolean;
 
+    initialize(): void {
+        this.source.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.source.removeDependent(this);
+    }
+
     buildNewValue(): A | undefined {
-        const na = this.s.newValue;
+        const na = this.source.newValue;
         const f = this.f;
 
         if (na === undefined) return undefined;
@@ -134,12 +166,18 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
 
         this.source = source;
         this.f = f;
-
-        source.addDependent(this);
     }
 
     private readonly source: StreamVertex<A>;
     private readonly f: (a: A) => B;
+
+    initialize(): void {
+        this.source.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.source.removeDependent(this);
+    }
 
     buildNewValue(): B | undefined {
         const f = this.f;
@@ -160,15 +198,22 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
         this.s0 = s0;
         this.s1 = s1;
         this.f = f;
-
-        s0.addDependent(this);
-        s1.addDependent(this);
     }
 
     private readonly s0: StreamVertex<A>;
     private readonly s1: StreamVertex<A>;
 
     private readonly f: (a0: A, a1: A) => A;
+
+    initialize(): void {
+        this.s0.addDependent(this);
+        this.s1.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.s1.removeDependent(this);
+        this.s0.removeDependent(this);
+    }
 
     buildNewValue(): A | undefined {
         const f = this.f;
@@ -194,11 +239,17 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
         super();
 
         this.streams = streams;
-
-        streams.forEach((s) => s.vertex.addDependent(this));
     }
 
     private readonly streams: Stream<A>[];
+
+    initialize(): void {
+        this.streams.forEach((s) => s.vertex.addDependent(this));
+    }
+
+    uninitialize(): void {
+        this.streams.forEach((s) => s.vertex.removeDependent(this));
+    }
 
     buildNewValue(): A | undefined {
         const s = this.streams.find((s) => s.vertex.newValue !== undefined);
@@ -214,26 +265,32 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
 
 class StreamOnceVertex<A> extends StreamVertex<A> {
     constructor(
-        s: StreamVertex<A>,
+        source: StreamVertex<A>,
     ) {
         super();
 
-        this.s = s;
-
-        s.addDependent(this);
+        this.source = source;
     }
 
-    private readonly s: StreamVertex<A>;
+    private readonly source: StreamVertex<A>;
 
     private hasFired = false;
 
+    initialize(): void {
+        this.source.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.source.removeDependent(this);
+    }
+
     buildNewValue(): A | undefined {
-        const na = this.s.newValue;
+        const na = this.source.newValue;
 
         if (na === undefined || this.hasFired) return undefined;
 
         this.hasFired = true;
-        this.s.dependents.delete(this);
+        this.source.dependents.delete(this);
 
         return na;
     }
@@ -323,8 +380,8 @@ export class Stream<A> {
      * Return a stream that only outputs events from the input stream
      * when the specified cell's value is true.
      */
-    gate(c : Cell<boolean>) : Stream<A> {
-        return this.snapshot(c, (a : A, pred : boolean) => {
+    gate(c: Cell<boolean>): Stream<A> {
+        return this.snapshot(c, (a: A, pred: boolean) => {
             return pred ? a : null;
         }).filterNotNull();
     }
@@ -481,8 +538,12 @@ export class Stream<A> {
     }
 
     listen(h: (a: A) => void): () => void {
-        new ListenerVertex(this.vertex, h);
-        return () => { };
+        const vertex = new ListenerVertex(this.vertex, h);
+        vertex.incRefCount();
+
+        return () => {
+            vertex.decRefCount();
+        };
     }
 
     static firstOf<A>(streams: Stream<A>[]): Stream<A> {

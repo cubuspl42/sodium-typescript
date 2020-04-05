@@ -14,7 +14,7 @@ afterEach(() => {
   }
 });
 
-test('should test snapshot', (done) => {
+test.only('should test snapshot', (done) => {
   const c = new CellSink<number>(0),
     s = new StreamSink<number>(),
     out: string[] = [],

@@ -15,19 +15,19 @@ class CellMapVertex<A, B> extends CellVertex<B> {
 
         this.f = f;
         this.source = source;
-
-        // Transaction.log(() => `constructing CellMapVertex source = ${source.describe()}`);
-
-        source.addDependent(this);
     }
 
     private readonly source: CellVertex<A>;
     private readonly f: (a: A) => B;
 
-    buildOldValue(): B {
+    initialize() {
         const f = this.f;
-        const na = f(this.source.oldValue);
-        return na;
+        this.source.addDependent(this);
+        this._oldValue = f(this.source.oldValue);
+    }
+
+    uninitialize() {
+        this.source.removeDependent(this);
     }
 
     buildNewValue(): B | undefined {
@@ -55,9 +55,17 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
     private readonly cf: CellVertex<(a: A) => B>;
     private readonly ca: CellVertex<A>;
 
-    buildOldValue(): B {
+    initialize() {
+        this.cf.addDependent(this);
+        this.ca.addDependent(this);
+
         const f = this.cf.oldValue;
-        return f(this.ca.oldValue);
+        this._oldValue = f(this.ca.oldValue);
+    }
+
+    uninitialize() {
+        this.cf.removeDependent(this);
+        this.ca.removeDependent(this);
     }
 
     buildNewValue(): B | undefined {
@@ -94,9 +102,18 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     private readonly cb: CellVertex<B>;
     private readonly f: (a: A, b: B) => C;
 
-    buildOldValue(): C {
+    initialize(): void {
+        this.ca.addDependent(this);
+        this.cb.addDependent(this);
+
         const f = this.f;
-        return f(this.ca.oldValue, this.cb.oldValue);
+        this._oldValue = f(this.ca.oldValue, this.cb.oldValue);
+    }
+
+
+    uninitialize(): void {
+        this.ca.removeDependent(this);
+        this.cb.removeDependent(this);
     }
 
     buildNewValue(): C | undefined {
@@ -134,13 +151,6 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         this.cf = cf;
 
         this.f = f;
-
-        ca?.addDependent(this);
-        cb?.addDependent(this);
-        cc?.addDependent(this);
-        cd?.addDependent(this);
-        ce?.addDependent(this);
-        cf?.addDependent(this);
     }
 
     private readonly ca?: CellVertex<A>;
@@ -152,9 +162,16 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
 
     private readonly f: (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G;
 
-    buildOldValue(): G {
+    initialize(): void {
+        this.ca?.addDependent(this);
+        this.cb?.addDependent(this);
+        this.cc?.addDependent(this);
+        this.cd?.addDependent(this);
+        this.ce?.addDependent(this);
+        this.cf?.addDependent(this);
+
         const f = this.f;
-        return f(
+        this._oldValue = f(
             this.ca?.oldValue,
             this.cb?.oldValue,
             this.cc?.oldValue,
@@ -162,6 +179,15 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
             this.ce?.oldValue,
             this.cf?.oldValue,
         );
+    }
+
+    uninitialize(): void {
+        this.ca?.removeDependent(this);
+        this.cb?.removeDependent(this);
+        this.cc?.removeDependent(this);
+        this.cd?.removeDependent(this);
+        this.ce?.removeDependent(this);
+        this.cf?.removeDependent(this);
     }
 
     buildNewValue(): G | undefined {
@@ -202,14 +228,18 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
         super();
 
         this.caa = ca;
-
-        ca.forEach((a) => a.vertex.addDependent(this));
     }
 
     private readonly caa: readonly Cell<A>[];
 
-    buildOldValue(): A[] {
-        return this.caa.map(a => a.vertex.oldValue);
+    initialize(): void {
+        this.caa.forEach((a) => a.vertex.addDependent(this));
+        this._oldValue = this.caa.map(a => a.vertex.oldValue);
+    }
+
+    uninitialize(): void {
+        this.caa.forEach((a) => a.vertex.removeDependent(this));
+        this._oldValue = this.caa.map(a => a.vertex.oldValue);
     }
 
     buildNewValue(): A[] | undefined {
@@ -227,16 +257,24 @@ class SwitchCVertex<A> extends CellVertex<A> {
         super();
 
         this.cca = cca;
-
-        cca.addDependent(this);
     }
 
     private readonly cca: CellVertex<Cell<A>>;
 
-    buildOldValue(): A {
+    initialize(): void {
+        this.cca.addDependent(this);
+
         const ca = this.cca.oldValue;
         ca.vertex.addDependent(this);
-        return ca.vertex.oldValue;
+
+        this._oldValue = ca.vertex.oldValue;
+    }
+
+    uninitialize(): void {
+        const ca = this.cca.oldValue;
+        ca.vertex.removeDependent(this);
+
+        this.cca.removeDependent(this);
     }
 
     buildNewValue(): A | undefined {
@@ -492,8 +530,13 @@ export class Cell<A> {
 	 *   your own primitives.
      */
     listen(h: (a: A) => void): () => void {
+        const vertex = new ListenerVertex(this.vertex, h);
+        vertex.incRefCount();
+
         h(this.vertex.oldValue);
-        new ListenerVertex(this.vertex, h);
-        return () => { };
+
+        return () => {
+            vertex.decRefCount();
+        };
     }
 }

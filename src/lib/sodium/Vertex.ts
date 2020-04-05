@@ -6,20 +6,43 @@ export function getTotalRegistrations(): number {
 }
 
 export abstract class Vertex {
+    private _refCount = 0;
+
     name?: string;
 
     readonly dependents?: Set<Vertex>;
 
     visited = false;
 
-    reset(): void { // TODO: remove?
-        this.visited = false;
-    }
+    // reset(): void { // TODO: remove?
+    //     this.visited = false;
+    // }
+
+    initialize(): void { }
+
+    uninitialize(): void { }
 
     notify(): void { }
 
     update(): void {
         this.visited = false;
+    }
+
+    incRefCount(): void {
+        ++this._refCount;
+        if (this._refCount == 1) {
+            this.initialize();
+        }
+    }
+
+    decRefCount(): void {
+        if (this._refCount <= 0) {
+            throw new Error("Reference counter is already zero");
+        }
+        --this._refCount;
+        if (this._refCount == 0) {
+            this.uninitialize();
+        }
     }
 
     refCount(): number {
@@ -76,6 +99,17 @@ export class StreamVertex<A> extends Vertex {
 
     addDependent(vertex: Vertex): void {
         this.dependents.add(vertex);
+        this.incRefCount();
+    }
+
+    removeDependent(vertex: Vertex) {
+        const wasRemoved = this.dependents.delete(vertex);
+
+        if (!wasRemoved) {
+            throw new Error(`Attempted to remove a non-dependent`);
+        }
+
+        this.decRefCount();
     }
 
     describe_(): string {
@@ -98,19 +132,15 @@ export class CellVertex<A> extends StreamVertex<A> {
 
     get oldValue(): A {
         if (this._oldValue === undefined) {
-            this._oldValue = this.buildOldValue();
+            throw new Error("Attempted to access uninitialized old value");
         }
-        return this._oldValue;
+        return this._oldValue!;
     }
 
     constructor(initValue?: A, newValue?: A) {
         super();
         this._oldValue = initValue;
         this._newValue = newValue;
-    }
-
-    buildOldValue(): A {
-        throw new Error("Unimplemented");
     }
 
     buildNewValue(): A | undefined {
@@ -164,8 +194,14 @@ export class ListenerVertex<A> extends Vertex {
 
         this.source = source;
         this.h = h;
+    }
 
-        source.addDependent(this);
+    initialize(): void {
+        this.source.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.source.addDependent(this);
     }
 
     notify(): void {

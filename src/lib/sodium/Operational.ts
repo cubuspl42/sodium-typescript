@@ -13,11 +13,17 @@ class ValueVertex<A> extends StreamVertex<A> {
         super();
 
         this.source = source;
-
-        source.addDependent(this);
     }
 
     readonly source: CellVertex<A>;
+
+    initialize(): void {
+        this.source.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.source.removeDependent(this);
+    }
 
     buildNewValue(): A | undefined {
         const oa = this.isInitialized ? undefined : this.source.oldValue;
