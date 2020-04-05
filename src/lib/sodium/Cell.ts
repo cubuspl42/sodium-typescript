@@ -16,7 +16,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         this.f = f;
         this.source = source;
 
-        Transaction.log(() => `constructing CellMapVertex source = ${source.describe()}`);
+        // Transaction.log(() => `constructing CellMapVertex source = ${source.describe()}`);
 
         source.addDependent(this);
     }
@@ -198,7 +198,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
 
 
 class CellLiftArrayVertex<A> extends CellVertex<A[]> {
-    constructor(ca: Cell<A>[]) {
+    constructor(ca: readonly Cell<A>[]) {
         super();
 
         this.caa = ca;
@@ -206,7 +206,7 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
         ca.forEach((a) => a.vertex.addDependent(this));
     }
 
-    private readonly caa: Cell<A>[];
+    private readonly caa: readonly Cell<A>[];
 
     buildOldValue(): A[] {
         return this.caa.map(a => a.vertex.oldValue);
@@ -295,7 +295,7 @@ export class Cell<A> {
 
     rename(name: string): Cell<A> {
         this.vertex.name = name;
-        Transaction.log(() => `renaming ${this.constructor.name} to "${name}"`);
+        // Transaction.log(() => `renaming ${this.constructor.name} to "${name}"`);
         return this;
     }
 
@@ -428,7 +428,7 @@ export class Cell<A> {
     /**
      * Lift an array of cells into a cell of an array.
      */
-    public static liftArray<A>(ca: Cell<A>[]): Cell<A[]> {
+    public static liftArray<A>(ca: ReadonlyArray<Cell<A>>): Cell<ReadonlyArray<A>> {
         return new Cell(undefined, undefined, new CellLiftArrayVertex(ca));
     }
 

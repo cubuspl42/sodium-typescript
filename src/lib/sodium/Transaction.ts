@@ -17,7 +17,7 @@ function visit(set: Set<Vertex>, vertex: Vertex) {
     visit(set, v);
   });
 
-    set.add(vertex);
+  set.add(vertex);
 }
 
 export class Transaction {
@@ -41,6 +41,9 @@ export class Transaction {
     }
 
     const visited = dfs(this.roots);
+
+    Transaction.visitedVerticesCount = Math.max(visited.size, Transaction.visitedVerticesCount);
+
     this.roots.clear();
 
     // TODO: effects/update order
@@ -50,6 +53,8 @@ export class Transaction {
 
     visited.forEach((l) => l.update());
   }
+
+  static visitedVerticesCount = 0;
 
   static currentTransaction?: Transaction;
 
