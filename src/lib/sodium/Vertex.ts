@@ -1,4 +1,6 @@
 import { Transaction } from "./Transaction";
+import { Stream } from "./Stream";
+import { Cell } from "./Cell";
 
 let totalRegistrations: number = 0;
 export function getTotalRegistrations(): number {
@@ -62,6 +64,23 @@ export class StreamVertex<A> extends Vertex {
     processed = false;
 
     readonly dependents = new Set<Vertex>();
+
+    readonly extraDependencies: ReadonlyArray<Vertex>;
+
+    constructor(extraDependencies?: Array<Stream<any> | Cell<any>>) {
+        super();
+        this.extraDependencies =
+            extraDependencies !== undefined ?
+                extraDependencies.map((d) => d.vertex) : [];
+    }
+
+    initialize(): void {
+        this.extraDependencies.forEach((d) => d.incRefCount());
+    }
+
+    uninitialize(): void {
+        this.extraDependencies.forEach((d) => d.decRefCount());
+    }
 
     _newValue?: A;
 
@@ -137,8 +156,12 @@ export class CellVertex<A> extends StreamVertex<A> {
         return this._oldValue!;
     }
 
-    constructor(initValue?: A, newValue?: A) {
-        super();
+    constructor(
+        initValue?: A,
+        newValue?: A,
+        extraDependencies?: Array<Stream<any> | Cell<any>>,
+    ) {
+        super(extraDependencies);
         this._oldValue = initValue;
         this._newValue = newValue;
     }

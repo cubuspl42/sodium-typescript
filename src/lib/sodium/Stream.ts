@@ -4,6 +4,7 @@ import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import { CellLoop } from "./CellLoop";
+import { Lambda1_toFunction, Lambda1 } from "./Lambda";
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     constructor(
@@ -316,8 +317,9 @@ export class Stream<A> {
      *    {@link Cell#sample()} in which case it is equivalent to {@link Stream#snapshot(Cell)}ing the
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
-    map<B>(f: (a: A) => B): Stream<B> {
-        return new Stream(new StreamMapVertex(this.vertex, f));
+    map<B>(f : ((a : A) => B) | Lambda1<A,B>) : Stream<B> {
+        const fn = Lambda1_toFunction(f); // TODO: deps
+        return new Stream(new StreamMapVertex(this.vertex, fn));
     }
 
     /**

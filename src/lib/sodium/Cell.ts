@@ -5,13 +5,15 @@ import { Lazy } from "./Lazy";
 import { HoldVertex, Stream } from "./Stream";
 import { Operational } from "./Operational";
 import { Tuple2 } from "./Tuple2";
+import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
 
 class CellMapVertex<A, B> extends CellVertex<B> {
     constructor(
         source: CellVertex<A>,
         f: (a: A) => B,
+        extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super();
+        super(undefined, undefined, extraDependencies);
 
         this.f = f;
         this.source = source;
@@ -21,12 +23,14 @@ class CellMapVertex<A, B> extends CellVertex<B> {
     private readonly f: (a: A) => B;
 
     initialize() {
+        super.initialize();
         const f = this.f;
         this.source.addDependent(this);
         this._oldValue = f(this.source.oldValue);
     }
 
     uninitialize() {
+        super.uninitialize();
         this.source.removeDependent(this);
     }
 
@@ -378,9 +382,11 @@ export class Cell<A> {
      * always reflects the value of the function applied to the input Cell's value.
      * @param f Function to apply to convert the values. It must be <em>referentially transparent</em>.
      */
-    map<B>(f: (a: A) => B): Cell<B> {
+    map<B>(f: ((a: A) => B) | Lambda1<A, B>): Cell<B> {
         // TODO: Transaction.run
-        return new Cell(undefined, undefined, new CellMapVertex(this.vertex, f));
+        const fn = Lambda1_toFunction(f);
+        const deps = Lambda1_deps(f);
+        return new Cell(undefined, undefined, new CellMapVertex(this.vertex, fn, deps));
     }
 
 	/**

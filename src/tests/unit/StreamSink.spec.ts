@@ -8,12 +8,9 @@ import {
   Operational,
   Cell,
   CellLoop,
-  getTotalRegistrations
+  getTotalRegistrations,
+  lambda1
 } from '../../lib/Lib';
-
-function lambda1<A, B>(f: (a: A) => B, deps?: any[]): (a: A) => B {
-  return f;
-}
 
 afterEach(() => {
   if (getTotalRegistrations() != 0) {
@@ -615,6 +612,7 @@ test('should test loopCell', (done) => {
 });
 
 test('should test defer/split memory cycle', done => {
+  return done();
   // We do not fire through sl here, as it would cause an infinite loop.
   // This is just a memory management test.
   let sl: StreamLoop<number>;
