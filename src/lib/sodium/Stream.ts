@@ -77,7 +77,7 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
         this.cd.incRefCount();
         this.cc.incRefCount();
         this.cb.incRefCount();
-        this.sa.addDependent(this);
+        this.sa.removeDependent(this);
     }
 
     buildNewValue(): E | undefined {

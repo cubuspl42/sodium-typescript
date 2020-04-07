@@ -54,6 +54,23 @@ test('should test loopValueHold', (done) => {
   expect(out).toEqual(["cheese"]);
 });
 
+test.only('should test loopValueHold 2', (done) => {
+  const out: string[] = [];
+  const a = new Cell("cheese");
+
+  const value = Operational.value(a).hold("onion"),
+    sTick = new StreamSink<Unit>(),
+    kill = sTick.snapshot1(value).listen(x => {
+      out.push(x);
+      done();
+    });
+
+  sTick.send(Unit.UNIT);
+  kill();
+
+  expect(out).toEqual(["cheese"]);
+});
+
 test('should test liftLoop', (done) => {
   const out: string[] = [];
   const b = new CellSink("kettle");

@@ -51,9 +51,6 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
 
         this.cf = cf;
         this.ca = ca;
-
-        cf.addDependent(this);
-        ca.addDependent(this);
     }
 
     private readonly cf: CellVertex<(a: A) => B>;
@@ -97,9 +94,6 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
         this.ca = ca;
         this.cb = cb;
         this.f = f;
-
-        ca.addDependent(this);
-        cb.addDependent(this);
     }
 
     private readonly ca: CellVertex<A>;
