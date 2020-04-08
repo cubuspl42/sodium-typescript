@@ -280,7 +280,7 @@ class SwitchCVertex<A> extends CellVertex<A> {
         const nca = this.cca.newValue?.vertex;
 
         if (nca !== undefined) {
-            oca.dependents.delete(this);
+            oca.removeDependent(this);
             nca.addDependent(this);
             return nca.newValue ?? nca.oldValue;
         } else {
@@ -306,7 +306,7 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         const nsa = this.csa.newValue?.vertex;
 
         if (nsa !== undefined) {
-            osa.dependents.delete(this);
+            osa.removeDependent(this);
             nsa.addDependent(this);
         }
 

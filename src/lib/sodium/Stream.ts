@@ -282,7 +282,7 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
     }
 
     uninitialize(): void {
-        this.source.removeDependent(this);
+        this.source.removeDependent(this); // FIXME: removing twice?
     }
 
     buildNewValue(): A | undefined {
@@ -291,7 +291,7 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
         if (na === undefined || this.hasFired) return undefined;
 
         this.hasFired = true;
-        this.source.dependents.delete(this);
+        this.source.removeDependent(this);
 
         return na;
     }
