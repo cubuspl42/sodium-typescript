@@ -348,7 +348,10 @@ export class Cell<A> {
     }
 
     sample(): A {
-        return Transaction.run(() => { return this.vertex.oldValue; });
+        this.vertex.incRefCount();
+        const value = this.vertex.oldValue;
+        this.vertex.decRefCount();
+        return value;
     }
 
     sampleNoTrans__(): A {  // TO DO figure out how to hide this
@@ -497,8 +500,9 @@ export class Cell<A> {
     };
 
     forEach<R>(f: (value: A) => R): () => void {
+        const kill = this.listen(f);
         f(this.sample());
-        return this.listen(f);
+        return kill;
     };
 
     /**
