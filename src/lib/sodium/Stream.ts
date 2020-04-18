@@ -374,8 +374,8 @@ export class Stream<A> {
      * Return a stream that only outputs events that have present
      * values, discarding null values.
      */
-    filterNotNull(): Stream<A> {
-        return this.filter((a) => a !== null);
+    filterNotNull(): Stream<NonNullable<A>> {
+        return this.filter((a) => a !== null) as Stream<NonNullable<A>>;
     }
 
     /**

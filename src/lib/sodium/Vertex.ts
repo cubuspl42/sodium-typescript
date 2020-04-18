@@ -151,7 +151,7 @@ export class CellVertex<A> extends StreamVertex<A> {
 
     get oldValue(): A {
         if (this._oldValue === undefined) {
-            throw new Error("Attempted to access uninitialized old value");
+            this._oldValue = this.buildOldValue();
         }
         return this._oldValue!;
     }
@@ -164,6 +164,11 @@ export class CellVertex<A> extends StreamVertex<A> {
         super(extraDependencies);
         this._oldValue = initValue;
         this._newValue = newValue;
+    }
+
+
+    buildOldValue(): A {
+        throw new Error("Unimplemented");
     }
 
     buildNewValue(): A | undefined {

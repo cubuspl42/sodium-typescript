@@ -34,7 +34,7 @@ test('should test loopValueSnapshot', (done) => {
   expect(out).toEqual(["lettuce cheese"]);
 });
 
-test('should test loopValueHold', (done) => {
+test.only('should test loopValueHold', (done) => {
   const out: string[] = [];
   const value = Transaction.run(() => {
     const a = new CellLoop<string>();
@@ -54,7 +54,7 @@ test('should test loopValueHold', (done) => {
   expect(out).toEqual(["cheese"]);
 });
 
-test.only('should test loopValueHold 2', (done) => {
+test('should test loopValueHold 2', (done) => {
   const out: string[] = [];
   const a = new Cell("cheese");
 
