@@ -1,4 +1,3 @@
-
 import { Vertex, CellVertex, ListenerVertex, StreamVertex, ConstCellVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Lazy } from "./Lazy";
@@ -400,53 +399,53 @@ export class Cell<A> {
         return new Cell(undefined, undefined, new CellMapVertex(this.vertex, fn, deps));
     }
 
-	/**
-	 * Lift a binary function into cells, so the returned Cell always reflects the specified
-	 * function applied to the input cells' values.
-	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
-	 */
+    /**
+     * Lift a binary function into cells, so the returned Cell always reflects the specified
+     * function applied to the input cells' values.
+     * @param fn Function to apply. It must be <em>referentially transparent</em>.
+     */
     lift<B, C>(b: Cell<B>, f: (a: A, b: B) => C): Cell<C> {
         // TODO: Transaction.run
         return new Cell(undefined, undefined, new CellLiftVertex(this.vertex, b.vertex, f));
     }
 
-	/**
-	 * Lift a ternary function into cells, so the returned Cell always reflects the specified
-	 * function applied to the input cells' values.
-	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
-	 */
+    /**
+     * Lift a ternary function into cells, so the returned Cell always reflects the specified
+     * function applied to the input cells' values.
+     * @param fn Function to apply. It must be <em>referentially transparent</em>.
+     */
     lift3<B, C, D>(b: Cell<B>, c: Cell<C>,
-        fn0: (a: A, b: B, c: C) => D): Cell<D> {
+                   fn0: (a: A, b: B, c: C) => D): Cell<D> {
         return this._lift6((a, b, c) => fn0(a!, b!, c!), b, c);
     }
 
-	/**
-	 * Lift a quaternary function into cells, so the returned Cell always reflects the specified
-	 * function applied to the input cells' values.
-	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
-	 */
+    /**
+     * Lift a quaternary function into cells, so the returned Cell always reflects the specified
+     * function applied to the input cells' values.
+     * @param fn Function to apply. It must be <em>referentially transparent</em>.
+     */
     lift4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
-        fn0: (a: A, b: B, c: C, d: D) => E): Cell<E> {
+                      fn0: (a: A, b: B, c: C, d: D) => E): Cell<E> {
         return this._lift6((a, b, c, d) => fn0(a!, b!, c!, d!), b, c, d);
     }
 
-	/**
-	 * Lift a 5-argument function into cells, so the returned Cell always reflects the specified
-	 * function applied to the input cells' values.
-	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
-	 */
+    /**
+     * Lift a 5-argument function into cells, so the returned Cell always reflects the specified
+     * function applied to the input cells' values.
+     * @param fn Function to apply. It must be <em>referentially transparent</em>.
+     */
     lift5<B, C, D, E, F>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>,
-        fn0: (a: A, b: B, c: C, d: D, e: E) => F): Cell<F> {
+                         fn0: (a: A, b: B, c: C, d: D, e: E) => F): Cell<F> {
         // TODO: Transaction.run
 
         throw new Error();
     }
 
-	/**
-	 * Lift a 6-argument function into cells, so the returned Cell always reflects the specified
-	 * function applied to the input cells' values.
-	 * @param fn Function to apply. It must be <em>referentially transparent</em>.
-	 */
+    /**
+     * Lift a 6-argument function into cells, so the returned Cell always reflects the specified
+     * function applied to the input cells' values.
+     * @param fn Function to apply. It must be <em>referentially transparent</em>.
+     */
     lift6<B, C, D, E, F, G>(
         b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>, f: Cell<F>,
         fn0: (a: A, b: B, c: C, d: D, e: E, f: F) => G,
@@ -487,24 +486,24 @@ export class Cell<A> {
         return new Cell(undefined, undefined, new CellLiftArrayVertex(ca));
     }
 
-	/**
-	 * Apply a value inside a cell to a function inside a cell. This is the
-	 * primitive for all function lifting.
-	 */
+    /**
+     * Apply a value inside a cell to a function inside a cell. This is the
+     * primitive for all function lifting.
+     */
     static apply<A, B>(cf: Cell<(a: A) => B>, ca: Cell<A>): Cell<B> {
         return new Cell(undefined, undefined, new CellApplyVertex(cf.vertex, ca.vertex));
     }
 
-	/**
-	 * Unwrap a cell inside another cell to give a time-varying cell implementation.
-	 */
+    /**
+     * Unwrap a cell inside another cell to give a time-varying cell implementation.
+     */
     static switchC<A>(cca: Cell<Cell<A>>): Cell<A> {
         return new Cell(undefined, undefined, new SwitchCVertex(cca.vertex));
     }
 
-	/**
-	 * Unwrap a stream inside a cell to give a time-varying stream implementation.
-	 */
+    /**
+     * Unwrap a stream inside a cell to give a time-varying stream implementation.
+     */
     static switchS<A>(csa: Cell<Stream<A>>): Stream<A> {
         return new Stream(new SwitchSVertex(csa.vertex));
     }
@@ -535,17 +534,17 @@ export class Cell<A> {
         throw new Error();
     }
 
-	/**
-	 * Listen for updates to the value of this cell. This is the observer pattern. The
-	 * returned {@link Listener} has a {@link Listener#unlisten()} method to cause the
-	 * listener to be removed. This is an OPERATIONAL mechanism is for interfacing between
-	 * the world of I/O and for FRP.
-	 * @param h The handler to execute when there's a new value.
-	 *   You should make no assumptions about what thread you are called on, and the
-	 *   handler should not block. You are not allowed to use {@link CellSink#send(Object)}
-	 *   or {@link StreamSink#send(Object)} in the handler.
-	 *   An exception will be thrown, because you are not meant to use this to create
-	 *   your own primitives.
+    /**
+     * Listen for updates to the value of this cell. This is the observer pattern. The
+     * returned {@link Listener} has a {@link Listener#unlisten()} method to cause the
+     * listener to be removed. This is an OPERATIONAL mechanism is for interfacing between
+     * the world of I/O and for FRP.
+     * @param h The handler to execute when there's a new value.
+     *   You should make no assumptions about what thread you are called on, and the
+     *   handler should not block. You are not allowed to use {@link CellSink#send(Object)}
+     *   or {@link StreamSink#send(Object)} in the handler.
+     *   An exception will be thrown, because you are not meant to use this to create
+     *   your own primitives.
      */
     listen(h: (a: A) => void): () => void {
         const vertex = new ListenerVertex(this.vertex, h);
