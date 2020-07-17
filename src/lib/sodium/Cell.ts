@@ -336,7 +336,7 @@ export class Cell<A> {
         if (vertex !== undefined) {
             this.vertex = vertex;
         } else if (initValue !== undefined && str !== undefined) {
-            this.vertex = new HoldVertex<A>(initValue, str.vertex);
+            this.vertex = new HoldVertex<A>(new Lazy(() => initValue), str.vertex);
         } else {
             this.vertex = new ConstCellVertex<A>(initValue!);
         }

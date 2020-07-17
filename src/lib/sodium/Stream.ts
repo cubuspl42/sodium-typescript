@@ -98,13 +98,16 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
 
 export class HoldVertex<A> extends CellVertex<A> {
     constructor(
-        initValue: A,
+        initValue: Lazy<A>,
         steps: StreamVertex<A>,
     ) {
-        super(initValue);
+        super();
 
+        this.initValue = initValue;
         this.steps = steps;
     }
+
+    private readonly initValue: Lazy<A>;
 
     private readonly steps: StreamVertex<A>;
 
@@ -114,6 +117,11 @@ export class HoldVertex<A> extends CellVertex<A> {
 
     uninitialize(): void {
         this.steps.removeDependent(this);
+    }
+
+    buildOldValue(): A {
+        const na = this.initValue.get();
+        return na;
     }
 
     buildNewValue(): A | undefined {
@@ -481,19 +489,19 @@ export class Stream<A> {
      * any state changes from the current transaction.
      */
     hold(initValue: A): Cell<A> {
-        return Transaction.run((t) => {
-            const vertex = new HoldVertex(initValue, this.vertex);
-            const cell = new Cell(undefined, undefined, vertex);
-            t.addRoot(vertex);
-            return cell;
-        })
+        return this.holdLazy(new Lazy(() => initValue));
     }
 
     /**
      * A variant of {@link hold(Object)} with an initial value captured by {@link Cell#sampleLazy()}.
      */
     holdLazy(initValue: Lazy<A>): Cell<A> {
-        throw new Error();
+        return Transaction.run((t) => {
+            const vertex = new HoldVertex(initValue, this.vertex);
+            const cell = new Cell(undefined, undefined, vertex);
+            t.addRoot(vertex);
+            return cell;
+        });
     }
 
     /**
