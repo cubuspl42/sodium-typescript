@@ -317,7 +317,7 @@ export class Stream<A> {
      *    {@link Cell#sample()} in which case it is equivalent to {@link Stream#snapshot(Cell)}ing the
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
-    map<B>(f : ((a : A) => B) | Lambda1<A,B>) : Stream<B> {
+    map<B>(f: ((a: A) => B) | Lambda1<A, B>): Stream<B> {
         const fn = Lambda1_toFunction(f); // TODO: deps
         return new Stream(new StreamMapVertex(this.vertex, fn));
     }
@@ -388,17 +388,17 @@ export class Stream<A> {
         }).filterNotNull();
     }
 
-	/**
-	 * Variant of {@link snapshot(Cell, Lambda2)} that captures the cell's value
-	 * at the time of the event firing, ignoring the stream's value.
-	 */
+    /**
+     * Variant of {@link snapshot(Cell, Lambda2)} that captures the cell's value
+     * at the time of the event firing, ignoring the stream's value.
+     */
     snapshot1<B>(c: Cell<B>): Stream<B> {
         return new Stream(new SnapshotVertex(this.vertex, c.vertex, (_, b) => b));
     }
 
-	/**
-	 * Return a stream whose events are the result of the combination using the specified
-	 * function of the input stream's event value and the value of the cell at that time.
+    /**
+     * Return a stream whose events are the result of the combination using the specified
+     * function of the input stream's event value and the value of the cell at that time.
      * <P>
      * There is an implicit delay: State updates caused by event firings being held with
      * {@link Stream#hold(Object)} don't become visible as the cell's current value until
@@ -410,9 +410,9 @@ export class Stream<A> {
         return new Stream(new SnapshotVertex(this.vertex, b.vertex, f));
     }
 
-	/**
-	 * Return a stream whose events are the result of the combination using the specified
-	 * function of the input stream's event value and the value of the cells at that time.
+    /**
+     * Return a stream whose events are the result of the combination using the specified
+     * function of the input stream's event value and the value of the cells at that time.
      * <P>
      * There is an implicit delay: State updates caused by event firings being held with
      * {@link Stream#hold(Object)} don't become visible as the cell's current value until
@@ -424,9 +424,9 @@ export class Stream<A> {
         throw new Error();
     }
 
-	/**
-	 * Return a stream whose events are the result of the combination using the specified
-	 * function of the input stream's event value and the value of the cells at that time.
+    /**
+     * Return a stream whose events are the result of the combination using the specified
+     * function of the input stream's event value and the value of the cells at that time.
      * <P>
      * There is an implicit delay: State updates caused by event firings being held with
      * {@link Stream#hold(Object)} don't become visible as the cell's current value until
@@ -435,14 +435,14 @@ export class Stream<A> {
      * transaction.
      */
     snapshot4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
-        f_: (a: A, b: B, c: C, d: D) => E): Stream<E> {
+                          f_: (a: A, b: B, c: C, d: D) => E): Stream<E> {
         return new Stream(new Snapshot4Vertex<A, B, C, D, E>(
             this.vertex, b.vertex, c.vertex, d.vertex, f_));
     }
 
-	/**
-	 * Return a stream whose events are the result of the combination using the specified
-	 * function of the input stream's event value and the value of the cells at that time.
+    /**
+     * Return a stream whose events are the result of the combination using the specified
+     * function of the input stream's event value and the value of the cells at that time.
      * <P>
      * There is an implicit delay: State updates caused by event firings being held with
      * {@link Stream#hold(Object)} don't become visible as the cell's current value until
@@ -451,13 +451,13 @@ export class Stream<A> {
      * transaction.
      */
     snapshot5<B, C, D, E, F>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>,
-        f_: (a: A, b: B, c: C, d: D, e: E) => F): Stream<F> {
+                             f_: (a: A, b: B, c: C, d: D, e: E) => F): Stream<F> {
         throw new Error();
     }
 
-	/**
-	 * Return a stream whose events are the result of the combination using the specified
-	 * function of the input stream's event value and the value of the cells at that time.
+    /**
+     * Return a stream whose events are the result of the combination using the specified
+     * function of the input stream's event value and the value of the cells at that time.
      * <P>
      * There is an implicit delay: State updates caused by event firings being held with
      * {@link Stream#hold(Object)} don't become visible as the cell's current value until
@@ -466,12 +466,12 @@ export class Stream<A> {
      * transaction.
      */
     snapshot6<B, C, D, E, F, G>(b: Cell<B>, c: Cell<C>, d: Cell<D>, e: Cell<E>, f: Cell<F>,
-        f_: (a: A, b: B, c: C, d: D, e: E, f: F) => G): Stream<G> {
+                                f_: (a: A, b: B, c: C, d: D, e: E, f: F) => G): Stream<G> {
         throw new Error();
     }
 
-	/**
-	 * Create a {@link Cell} with the specified initial value, that is updated
+    /**
+     * Create a {@link Cell} with the specified initial value, that is updated
      * by this stream's event values.
      * <p>
      * There is an implicit delay: State updates caused by event firings don't become
@@ -484,9 +484,9 @@ export class Stream<A> {
         return new Cell(undefined, undefined, new HoldVertex(initValue, this.vertex));
     }
 
-	/**
-	 * A variant of {@link hold(Object)} with an initial value captured by {@link Cell#sampleLazy()}.
-	 */
+    /**
+     * A variant of {@link hold(Object)} with an initial value captured by {@link Cell#sampleLazy()}.
+     */
     holdLazy(initValue: Lazy<A>): Cell<A> {
         throw new Error();
     }
