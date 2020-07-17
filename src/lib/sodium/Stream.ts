@@ -580,13 +580,27 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
         return this.source!.newValue;
     }
 
+    initialize() {
+        const source = this.source;
+        if (source === undefined) {
+            throw new Error("Source not available in StreamLoop.initialize");
+        }
+        source.addDependent(this);
+    }
+
+    uninitialize() {
+        const source = this.source;
+        if (source === undefined) {
+            throw new Error("Source not available in StreamLoop.uninitialize");
+        }
+        source.removeDependent(this);
+    }
+
     loop(source: StreamVertex<A>): void {
         if (this.isLooped)
             throw new Error("StreamLoop looped more than once");
 
         this.source = source;
-
-        source.addDependent(this);
     }
 }
 
