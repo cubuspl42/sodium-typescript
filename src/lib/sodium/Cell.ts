@@ -307,12 +307,19 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         super();
 
         this.csa = csa;
-
-        csa.addDependent(this);
-        csa.oldValue?.vertex?.addDependent(this); // TODO: handle loops
     }
 
     private readonly csa: CellVertex<Stream<A>>;
+
+    initialize(): void {
+        this.csa.addDependent(this);
+        this.csa.oldValue?.vertex?.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.csa.removeDependent(this);
+        this.csa.oldValue?.vertex?.removeDependent(this);
+    }
 
     buildNewValue(): A | undefined {
         const osa = this.csa.oldValue.vertex;
@@ -378,9 +385,7 @@ export class Cell<A> {
      * @see Stream#holdLazy(Lazy) Stream.holdLazy()
      */
     sampleLazy(): Lazy<A> {
-        // const me = this;
-        // return Transaction.run(() => me.sampleLazyNoTrans__());
-        throw new Error();
+        return new Lazy(() => this.vertex.buildOldValue());
     }
 
     sampleLazyNoTrans__(): Lazy<A> {  // TO DO figure out how to hide this

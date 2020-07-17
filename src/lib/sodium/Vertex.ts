@@ -3,6 +3,7 @@ import { Stream } from "./Stream";
 import { Cell } from "./Cell";
 
 let totalRegistrations: number = 0;
+
 export function getTotalRegistrations(): number {
     return totalRegistrations;
 }
@@ -20,11 +21,14 @@ export abstract class Vertex {
     //     this.visited = false;
     // }
 
-    initialize(): void { }
+    initialize(): void {
+    }
 
-    uninitialize(): void { }
+    uninitialize(): void {
+    }
 
-    process(): void { }
+    process(): void {
+    }
 
     update(): void {
         this.visited = false;
@@ -168,7 +172,11 @@ export class CellVertex<A> extends StreamVertex<A> {
 
 
     buildOldValue(): A {
-        throw new Error("Unimplemented");
+        const oldValue = this._oldValue;
+        if (oldValue === undefined) {
+            throw new Error("Old value not available on CellVertex");
+        }
+        return oldValue;
     }
 
     buildNewValue(): A | undefined {
