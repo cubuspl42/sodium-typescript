@@ -481,7 +481,12 @@ export class Stream<A> {
      * any state changes from the current transaction.
      */
     hold(initValue: A): Cell<A> {
-        return new Cell(undefined, undefined, new HoldVertex(initValue, this.vertex));
+        return Transaction.run((t) => {
+            const vertex = new HoldVertex(initValue, this.vertex);
+            const cell = new Cell(undefined, undefined, vertex);
+            t.addRoot(vertex);
+            return cell;
+        })
     }
 
     /**
