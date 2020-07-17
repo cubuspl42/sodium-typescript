@@ -8,6 +8,7 @@
     "preserveConstEnums": true,
     "sourceMap": true,
     "declaration": true,
+    "outDir": "dist/",
     "declarationDir": "dist/typings",
     "moduleResolution": "node",
     "diagnostics": true,
