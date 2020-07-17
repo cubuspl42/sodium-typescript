@@ -24,7 +24,7 @@ export abstract class Vertex {
 
     uninitialize(): void { }
 
-    notify(): void { }
+    process(): void { }
 
     update(): void {
         this.visited = false;
@@ -232,14 +232,10 @@ export class ListenerVertex<A> extends Vertex {
         this.source.addDependent(this);
     }
 
-    notify(): void {
+    process(): void {
         const a = this.source.newValue;
         if (a !== undefined) {
             this.h(a);
         }
-    }
-
-    process() {
-        return false;
     }
 }

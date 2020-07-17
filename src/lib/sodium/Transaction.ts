@@ -1,4 +1,4 @@
-import { Vertex, ListenerVertex } from './Vertex';
+import {Vertex, ListenerVertex} from './Vertex';
 
 let enableDebugFlag = false;
 
@@ -8,7 +8,47 @@ function log(a: any): void {
   }
 }
 
-function visit(set: Set<Vertex>, vertex: Vertex) {
+class Set_<A> {
+  private readonly array: Array<A | undefined> = [];
+
+  private _size = 0;
+
+  get size(): number {
+    return this._size;
+  }
+
+  add(a: A): void {
+    if (this._size < this.array.length) {
+      this.array[this._size] = a;
+      this._size++;
+    } else {
+      this.array.push(a);
+      this._size = this.array.length;
+    }
+  }
+
+  forEach(f: (a: A) => void) {
+    const array = this.array;
+    const size = this.size;
+
+    for (let i = 0; i < size; ++i) {
+      f(array[i]!);
+    }
+  }
+
+  clear(): void {
+    const array = this.array;
+    const size = this.size;
+
+    for (let i = 0; i < size; ++i) {
+      array[i] = undefined;
+    }
+
+    this._size = 0;
+  }
+}
+
+function visit(set: Set_<Vertex>, vertex: Vertex) {
   if (vertex.visited) return;
 
   vertex.visited = true;
@@ -23,15 +63,24 @@ function visit(set: Set<Vertex>, vertex: Vertex) {
 export class Transaction {
   private roots = new Set<Vertex>();
 
-  constructor() { }
+  private effects = new Set<() => void>();
+
+  private static visited = new Set_<Vertex>();
+
+  constructor() {
+  }
 
   addRoot(root: Vertex) {
     this.roots.add(root);
   }
 
+  addEffect(effect: () => void) {
+    this.effects.add(effect);
+  }
+
   close(): void {
-    const dfs = (roots: Set<Vertex>): Set<Vertex> => {
-      const set = new Set<Vertex>();
+    const dfs = (roots: Set<Vertex>): Set_<Vertex> => {
+      const set = Transaction.visited;
 
       roots.forEach((v) => {
         visit(set, v);
@@ -46,12 +95,15 @@ export class Transaction {
 
     this.roots.clear();
 
-    // TODO: effects/update order
     visited.forEach((v) => {
-      v.notify();
+      v.process();
     });
 
     visited.forEach((l) => l.update());
+
+    this.effects.forEach((effect) => effect());
+
+    Transaction.visited.clear();
   }
 
   static visitedVerticesCount = 0;
