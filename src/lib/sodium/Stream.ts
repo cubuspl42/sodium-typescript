@@ -530,10 +530,7 @@ export class Stream<A> {
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
     accum<S>(initState: S, f: (a: A, s: S) => S): Cell<S> {
-        const loop = new CellLoop<S>();
-        const out = this.snapshot(loop, f).hold(initState);
-        loop.loop(out);
-        return out;
+        return this.accumLazy(new Lazy(() => initState), f);
     }
 
     /**
@@ -541,7 +538,10 @@ export class Stream<A> {
      * {@link Cell#sampleLazy()}.
      */
     accumLazy<S>(initState: Lazy<S>, f: (a: A, s: S) => S): Cell<S> {
-        throw new Error();
+        const loop = new CellLoop<S>();
+        const out = this.snapshot(loop, f).holdLazy(initState);
+        loop.loop(out);
+        return out;
     }
 
     /**
