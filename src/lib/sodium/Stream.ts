@@ -601,6 +601,11 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
             throw new Error("StreamLoop looped more than once");
 
         this.source = source;
+
+        // This doesn't really work yet (birth-transaction aliveness issue)
+        if (source.visited) {
+            Transaction.currentTransaction.visit(this);
+        }
     }
 }
 

@@ -368,9 +368,9 @@ export class Cell<A> {
     }
 
     sample(): A {
-        this.vertex.incRefCount();
+        // this.vertex.incRefCount(); // Was this ever needed?
         const value = this.vertex.oldValue;
-        this.vertex.decRefCount();
+        // this.vertex.decRefCount();
         return value;
     }
 

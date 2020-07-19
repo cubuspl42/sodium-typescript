@@ -48,13 +48,13 @@ class Set_<A> {
   }
 }
 
-function visit(set: Set_<Vertex>, vertex: Vertex) {
+function _visit(set: Set_<Vertex>, vertex: Vertex): void {
   if (vertex.visited) return;
 
   vertex.visited = true;
 
   vertex.dependents?.forEach((v) => {
-    visit(set, v);
+    _visit(set, v);
   });
 
   set.add(vertex);
@@ -78,15 +78,16 @@ export class Transaction {
     this.effects.add(effect);
   }
 
+  visit(v: Vertex): void {
+      _visit(Transaction.visited, v);
+  }
+
   close(): void {
     const dfs = (roots: Set<Vertex>): Set_<Vertex> => {
-      const set = Transaction.visited;
-
       roots.forEach((v) => {
-        visit(set, v);
+          this.visit(v);
       });
-
-      return set;
+      return Transaction.visited;
     }
 
     const visited = dfs(this.roots);
