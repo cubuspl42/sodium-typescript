@@ -323,14 +323,22 @@ class SwitchSVertex<A> extends StreamVertex<A> {
 
     buildNewValue(): A | undefined {
         const osa = this.csa.oldValue.vertex;
+        return osa.newValue;
+    }
+
+    process() {
+        const osa = this.csa.oldValue.vertex;
         const nsa = this.csa.newValue?.vertex;
 
+        // This is done in `process`, not `buildNewValue`, because evaluating `csa.newValue` in `buildNewValue` doesn't
+        // work when the new value of `csa` depends on the new value of this stream (which is not impossible).
+        // TODO: Check how Sodium master handles this
         if (nsa !== undefined) {
             osa.removeDependent(this);
             nsa.addDependent(this);
         }
 
-        return osa.newValue;
+        super.process();
     }
 }
 
