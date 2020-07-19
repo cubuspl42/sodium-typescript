@@ -385,7 +385,7 @@ export class Cell<A> {
      * @see Stream#holdLazy(Lazy) Stream.holdLazy()
      */
     sampleLazy(): Lazy<A> {
-        return new Lazy(() => this.vertex.buildOldValue());
+        return new Lazy(() => this.vertex.oldValue);
     }
 
     sampleLazyNoTrans__(): Lazy<A> {  // TO DO figure out how to hide this

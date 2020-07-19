@@ -27,8 +27,20 @@ class CellLoopVertex<A> extends CellVertex<A> {
         this.source.removeDependent(this);
     }
 
+    buildOldValue(): A {
+        const source = this.source;
+        if (source === undefined) {
+            throw new Error("CellLoop hasn't been looped yet");
+        }
+        return source.oldValue;
+    }
+
     buildNewValue(): A {
-        return this.source!.newValue;
+        const source = this.source;
+        if (source === undefined) {
+            throw new Error("CellLoop hasn't been looped yet");
+        }
+        return source.newValue;
     }
 
     loop(source: CellVertex<A>): void {
@@ -38,6 +50,7 @@ class CellLoopVertex<A> extends CellVertex<A> {
         this.source = source;
     }
 }
+
 /**
  * A forward reference for a {@link Cell} equivalent to the Cell that is referenced.
  */

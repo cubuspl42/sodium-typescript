@@ -150,12 +150,16 @@ export class StreamSinkVertex<A> extends StreamVertex<A> {
     }
 }
 
-export class CellVertex<A> extends StreamVertex<A> {
+export abstract class CellVertex<A> extends StreamVertex<A> {
     _oldValue?: A;
 
     get oldValue(): A {
         if (this._oldValue === undefined) {
-            this._oldValue = this.buildOldValue();
+            const a = this.buildOldValue();
+            if (a === undefined) {
+                throw new Error("Cell value cannot be undefined");
+            }
+            this._oldValue = a;
         }
         return this._oldValue!;
     }
@@ -172,11 +176,7 @@ export class CellVertex<A> extends StreamVertex<A> {
 
 
     buildOldValue(): A {
-        const oldValue = this._oldValue;
-        if (oldValue === undefined) {
-            throw new Error("Old value not available on CellVertex");
-        }
-        return oldValue;
+        throw new Error("buildOldValue implemnetation is not provided");
     }
 
     buildNewValue(): A | undefined {
