@@ -100,6 +100,10 @@ export class Transaction {
       v.process();
     });
 
+    visited.forEach((v) => {
+      v.postprocess();
+    });
+
     visited.forEach((l) => l.update());
 
     this.effects.forEach((effect) => effect());

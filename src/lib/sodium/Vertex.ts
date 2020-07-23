@@ -30,6 +30,9 @@ export abstract class Vertex {
     process(): void {
     }
 
+    postprocess(): void {
+    }
+
     update(): void {
         this.visited = false;
     }
