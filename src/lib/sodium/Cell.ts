@@ -291,13 +291,20 @@ class SwitchCVertex<A> extends CellVertex<A> {
     buildNewValue(): A | undefined {
         const oca = this.cca.oldValue.vertex;
         const nca = this.cca.newValue?.vertex;
+        if (nca !== undefined) {
+            return nca.newValue ?? nca.oldValue;
+        } else {
+            return oca.newValue;
+        }
+    }
+
+    postprocess(): void {
+        const oca = this.cca.oldValue.vertex;
+        const nca = this.cca.newValue?.vertex;
 
         if (nca !== undefined) {
             oca.removeDependent(this);
             nca.addDependent(this);
-            return nca.newValue ?? nca.oldValue;
-        } else {
-            return oca.newValue;
         }
     }
 }
