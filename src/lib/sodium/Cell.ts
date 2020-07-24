@@ -348,8 +348,6 @@ class SwitchSVertex<A> extends StreamVertex<A> {
 }
 
 export class Cell<A> {
-    // protected value: A;
-
     vertex: CellVertex<A>;
 
     constructor(initValue?: A, str?: Stream<A>, vertex?: CellVertex<A>) {
@@ -368,28 +366,11 @@ export class Cell<A> {
         return this;
     }
 
-    protected setStream(str: Stream<A>) {
-    }
-
-    getVertex__(): Vertex {
-        // return this.vertex;
-        throw new Error();
-    }
-
-    getStream__(): Stream<A> {  // TO DO: Figure out how to hide this
-        throw new Error();
-    }
-
     sample(): A {
         // this.vertex.incRefCount(); // Was this ever needed?
         const value = this.vertex.oldValue;
         // this.vertex.decRefCount();
         return value;
-    }
-
-    sampleNoTrans__(): A {  // TO DO figure out how to hide this
-        // return this.value;
-        throw new Error();
     }
 
     /**
@@ -399,10 +380,6 @@ export class Cell<A> {
      */
     sampleLazy(): Lazy<A> {
         return new Lazy(() => this.vertex.oldValue);
-    }
-
-    sampleLazyNoTrans__(): Lazy<A> {  // TO DO figure out how to hide this
-        throw new Error();
     }
 
     /**

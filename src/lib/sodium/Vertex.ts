@@ -17,10 +17,6 @@ export abstract class Vertex {
 
     visited = false;
 
-    // reset(): void { // TODO: remove?
-    //     this.visited = false;
-    // }
-
     initialize(): void {
     }
 
@@ -92,15 +88,6 @@ export class StreamVertex<A> extends Vertex {
     _newValue?: A;
 
     get newValue(): A | undefined {
-        // if (this.visited) {
-        //     const value = this.processed ? this._newValue : this.buildNewValue();
-        //     this._newValue = value;
-        //     this.processed = true;
-        //     return value;
-        // } else {
-        //     return undefined;
-        // }
-
         if (this._newValue !== undefined) {
             return this._newValue;
         } else if (this.visited && !this.processed) {
@@ -179,7 +166,7 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
 
 
     buildOldValue(): A {
-        throw new Error("buildOldValue implemnetation is not provided");
+        throw new Error("buildOldValue implementation is not provided");
     }
 
     buildNewValue(): A | undefined {
@@ -206,10 +193,6 @@ export class ConstCellVertex<A> extends CellVertex<A> {
     constructor(initValue: A) {
         super(initValue);
         this.processed = true;
-    }
-
-    fire(a: A) {
-        throw new Error("Unimplemented");
     }
 
     update() {
