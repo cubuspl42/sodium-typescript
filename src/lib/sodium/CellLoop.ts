@@ -16,6 +16,7 @@ class CellLoopVertex<A> extends CellVertex<A> {
     }
 
     initialize(): void {
+        // TODO: This shouldn't be an error (?)
         if (this.source === undefined)
             throw new Error(`Attempted to initalize a CellLoop before it was looped`);
 

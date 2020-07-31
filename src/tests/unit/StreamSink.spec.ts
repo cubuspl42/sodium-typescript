@@ -8,7 +8,7 @@ import {
     Cell,
     CellLoop,
     getTotalRegistrations,
-    lambda1
+    lambda1, Unit, Stream
 } from '../../lib/Lib';
 
 afterEach(() => {
@@ -435,6 +435,51 @@ test.skip('should test StreamLoop + hold', (done) => {
 
     done();
 });
+
+test('should test hold not missing the first value', (done) => {
+    const s = new StreamSink<number>();
+    const c = s.map((_) => s.hold(0)).hold(new Cell(-1));
+
+    const kill = c.listen(() => {
+    });
+
+    s.send(1);
+
+    const value = c.sample().sample();
+
+    expect(value).toEqual(1);
+
+    done();
+});
+
+test('should test StreamLoop + accumLazy', (done) => {
+    Transaction.run(() => {
+        const s1 = new StreamLoop<number>();
+        const c1 = new Cell(1);
+        const c2 = s1.accumLazy(c1.sampleLazy(), (a, s) => a + s);
+        const s2 = new StreamSink<number>();
+        s1.loop(s2);
+    });
+
+    done();
+});
+
+test('should test switchS + accumLazy', (done) => {
+    Transaction.run(() => {
+        const c1 = new CellLoop<Stream<number>>();
+        const s2 = Cell.switchS(c1);
+        const c3 = new Cell(1);
+        const s1 = new StreamSink<number>();
+        const c4 = new Cell(s1);
+
+        s2.accumLazy(c3.sampleLazy(), (a, s) => a + s);
+
+        c1.loop(c4);
+    });
+
+    done();
+});
+
 
 class SC {
     constructor(a: string, b: string, sw: string) {

@@ -496,10 +496,11 @@ export class Stream<A> {
      * A variant of {@link hold(Object)} with an initial value captured by {@link Cell#sampleLazy()}.
      */
     holdLazy(initValue: Lazy<A>): Cell<A> {
+        // TODO: Catch first value
         return Transaction.run((t) => {
             const vertex = new HoldVertex(initValue, this.vertex);
             const cell = new Cell(undefined, undefined, vertex);
-            t.addRoot(vertex);
+            // t.addRoot(vertex);
             return cell;
         });
     }
@@ -582,6 +583,7 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
 
     initialize() {
         const source = this.source;
+        // TODO: This shouldn't be an error (?)
         if (source === undefined) {
             throw new Error("Source not available in StreamLoop.initialize");
         }
