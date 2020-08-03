@@ -5,8 +5,6 @@ import { StreamLoop } from "./Stream";
 import { CellVertex } from "./Vertex";
 
 class CellLoopVertex<A> extends CellVertex<A> {
-    isLooped = false;
-
     private source?: CellVertex<A>;
 
     constructor() {
@@ -16,12 +14,10 @@ class CellLoopVertex<A> extends CellVertex<A> {
     }
 
     initialize(): void {
-        // TODO: This shouldn't be an error (?)
-        if (this.source === undefined)
-            throw new Error(`Attempted to initalize a CellLoop before it was looped`);
-
-        this.source.addDependent(this);
-        this._oldValue = this.source!.oldValue;
+        if (this.source !== undefined) {
+            this.source.addDependent(this);
+            // this._oldValue = this.source.oldValue;
+        }
     }
 
     uninitialize(): void {
@@ -45,10 +41,14 @@ class CellLoopVertex<A> extends CellVertex<A> {
     }
 
     loop(source: CellVertex<A>): void {
-        if (this.isLooped)
+        if (this.source !== undefined)
             throw new Error("CellLoop looped more than once");
 
         this.source = source;
+
+        if (this.refCount() > 0) {
+            source.addDependent(this);
+        }
 
         // This doesn't really work yet (birth-transaction aliveness issue)
         if (source.visited) {

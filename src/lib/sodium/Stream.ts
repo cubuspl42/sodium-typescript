@@ -583,19 +583,13 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
 
     initialize() {
         const source = this.source;
-        // TODO: This shouldn't be an error (?)
-        if (source === undefined) {
-            throw new Error("Source not available in StreamLoop.initialize");
+        if (source !== undefined) {
+            source.addDependent(this);
         }
-        source.addDependent(this);
     }
 
     uninitialize() {
-        const source = this.source;
-        if (source === undefined) {
-            throw new Error("Source not available in StreamLoop.uninitialize");
-        }
-        source.removeDependent(this);
+        this.source.removeDependent(this);
     }
 
     loop(source: StreamVertex<A>): void {
@@ -603,6 +597,10 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
             throw new Error("StreamLoop looped more than once");
 
         this.source = source;
+
+        if (this.refCount() > 0) {
+            source.addDependent(this);
+        }
 
         // This doesn't really work yet (birth-transaction aliveness issue)
         if (source.visited) {

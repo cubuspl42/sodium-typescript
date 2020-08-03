@@ -51,7 +51,7 @@ export abstract class Vertex {
     }
 
     refCount(): number {
-        return 0;
+        return this._refCount;
     }
 
     describe(): string {
