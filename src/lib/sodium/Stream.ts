@@ -1,10 +1,10 @@
-import { Vertex, StreamVertex, ListenerVertex, CellVertex } from "./Vertex";
+import { CellVertex, ListenerVertex, StreamVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import { CellLoop } from "./CellLoop";
-import { Lambda1_toFunction, Lambda1 } from "./Lambda";
+import { Lambda1, Lambda1_toFunction } from "./Lambda";
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     constructor(
@@ -241,6 +241,42 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
     }
 }
 
+class StreamOrElseVertex<A> extends StreamVertex<A> {
+    constructor(
+        s0: StreamVertex<A>,
+        s1: StreamVertex<A>,
+    ) {
+        super();
+
+        this.s0 = s0;
+        this.s1 = s1;
+    }
+
+    private readonly s0: StreamVertex<A>;
+    private readonly s1: StreamVertex<A>;
+
+    initialize(): void {
+        this.s0.addDependent(this);
+        this.s1.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.s1.removeDependent(this);
+        this.s0.removeDependent(this);
+    }
+
+    buildNewValue(): A | undefined {
+        const n0 = this.s0.newValue;
+
+        if (n0 !== undefined) {
+            return n0;
+        } else {
+            const n1 = this.s1.newValue;
+            return n1;
+        }
+    }
+}
+
 class StreamFirstOfVertex<A> extends StreamVertex<A> {
     constructor(
         streams: Stream<A>[],
@@ -352,7 +388,7 @@ export class Stream<A> {
      * be taken, because events can be dropped.
      */
     orElse(s: Stream<A>): Stream<A> {
-        return this.merge(s, (l, _r) => l);
+        return new Stream(new StreamOrElseVertex(this.vertex, s.vertex));
     }
 
     /**
