@@ -1,4 +1,3 @@
-import { Transaction } from "./Transaction";
 import { Stream } from "./Stream";
 import { Cell } from "./Cell";
 
@@ -92,6 +91,9 @@ export class StreamVertex<A> extends Vertex {
             return this._newValue;
         } else if (this.visited && !this.processed) {
             const value = this.buildNewValue();
+            if (value === null) {
+                throw new Error("Stream/Cell new value cannot be null");
+            }
             this._newValue = value;
             this.processed = true;
             return value;
@@ -146,8 +148,8 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
     get oldValue(): A {
         if (this._oldValue === undefined) {
             const a = this.buildOldValue();
-            if (a === undefined) {
-                throw new Error("Cell value cannot be undefined");
+            if (a === undefined || a === null) {
+                throw new Error("Cell value cannot be undefined/null");
             }
             this._oldValue = a;
         }
