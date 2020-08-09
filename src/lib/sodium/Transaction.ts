@@ -51,7 +51,7 @@ class Set_<A> {
 function _visit(set: Set_<Vertex>, vertex: Vertex): void {
   if (vertex.visited) return;
 
-  vertex.visited = true;
+  vertex.markVisited();
 
   vertex.dependents?.forEach((v) => {
     _visit(set, v);

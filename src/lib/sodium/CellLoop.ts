@@ -8,7 +8,7 @@ class CellLoopVertex<A> extends CellVertex<A> {
     private source?: CellVertex<A>;
 
     constructor() {
-        super();
+        super(false);
         if (Transaction.currentTransaction === null)
             throw new Error("StreamLoop/CellLoop must be used within an explicit transaction");
     }

@@ -8,13 +8,25 @@ export function getTotalRegistrations(): number {
 }
 
 export abstract class Vertex {
+    protected constructor(initialVisited: boolean) {
+        this._visited = initialVisited;
+    }
+
     private _refCount = 0;
 
     name?: string;
 
     readonly dependents?: Set<Vertex>;
 
-    visited = false;
+    private _visited: boolean;
+
+    get visited(): boolean {
+        return this._visited;
+    }
+
+    markVisited(): void {
+        this._visited = true;
+    }
 
     initialize(): void {
     }
@@ -29,7 +41,7 @@ export abstract class Vertex {
     }
 
     update(): void {
-        this.visited = false;
+        this._visited = false;
     }
 
     incRefCount(): void {
@@ -69,8 +81,11 @@ export class StreamVertex<A> extends Vertex {
 
     readonly extraDependencies: ReadonlyArray<Vertex>;
 
-    constructor(extraDependencies?: Array<Stream<any> | Cell<any>>) {
-        super();
+    constructor(
+        initialVisited: boolean,
+        extraDependencies?: Array<Stream<any> | Cell<any>>,
+    ) {
+        super(initialVisited);
         this.extraDependencies =
             extraDependencies !== undefined ?
                 extraDependencies.map((d) => d.vertex) : [];
@@ -157,13 +172,10 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
     }
 
     constructor(
-        initValue?: A,
-        newValue?: A,
+        initialVisited: boolean,
         extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super(extraDependencies);
-        this._oldValue = initValue;
-        this._newValue = newValue;
+        super(initialVisited, extraDependencies);
     }
 
 
@@ -193,10 +205,11 @@ export class CellSinkVertex<A> extends CellVertex<A> {
 
 export class ConstCellVertex<A> extends CellVertex<A> {
     constructor(initValue: A) {
-        super(initValue);
+        super(false);
+        this._oldValue = initValue;
         this.processed = true;
     }
-
+    
     update() {
     }
 
@@ -214,7 +227,7 @@ export class ListenerVertex<A> extends Vertex {
         source: StreamVertex<A>,
         h: (a: A) => void,
     ) {
-        super();
+        super(source.visited);
 
         this.source = source;
         this.h = h;

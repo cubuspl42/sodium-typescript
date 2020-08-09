@@ -10,7 +10,7 @@ class ValueVertex<A> extends StreamVertex<A> {
     constructor(
         source: CellVertex<A>,
     ) {
-        super();
+        super(source.visited);
 
         this.source = source;
     }

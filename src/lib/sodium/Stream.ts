@@ -12,7 +12,7 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         cb: CellVertex<B>,
         f: (a: A, b: B) => C,
     ) {
-        super();
+        super(sa.visited);
 
         this.f = f;
         this.sa = sa;
@@ -50,7 +50,7 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
         cd: CellVertex<D>,
         f: (a: A, b: B, c: C, d: D) => E,
     ) {
-        super();
+        super(sa.visited);
 
         this.f = f;
         this.sa = sa;
@@ -101,7 +101,7 @@ export class HoldVertex<A> extends CellVertex<A> {
         initValue: Lazy<A>,
         steps: StreamVertex<A>,
     ) {
-        super();
+        super(steps.visited);
 
         this.initValue = initValue;
         this.steps = steps;
@@ -135,7 +135,7 @@ class FilterVertex<A> extends StreamVertex<A> {
         source: StreamVertex<A>,
         f: (a: A) => boolean,
     ) {
-        super();
+        super(source.visited);
 
         this.source = source;
         this.f = f;
@@ -171,7 +171,7 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
         source: StreamVertex<A>,
         f: (a: A) => B,
     ) {
-        super();
+        super(source.visited);
 
         this.source = source;
         this.f = f;
@@ -202,7 +202,7 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
         s1: StreamVertex<A>,
         f: (a0: A, a1: A) => A,
     ) {
-        super();
+        super(s0.visited || s1.visited);
 
         this.s0 = s0;
         this.s1 = s1;
@@ -246,7 +246,7 @@ class StreamOrElseVertex<A> extends StreamVertex<A> {
         s0: StreamVertex<A>,
         s1: StreamVertex<A>,
     ) {
-        super();
+        super(s0.visited || s1.visited);
 
         this.s0 = s0;
         this.s1 = s1;
@@ -281,7 +281,7 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
     constructor(
         streams: Stream<A>[],
     ) {
-        super();
+        super(streams.some((s) => s.vertex.visited));
 
         this.streams = streams;
     }
@@ -312,7 +312,7 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
     constructor(
         source: StreamVertex<A>,
     ) {
-        super();
+        super(source.visited);
 
         this.source = source;
     }
@@ -343,7 +343,7 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
 
 export class Stream<A> {
     constructor(vertex?: StreamVertex<A>) {
-        this.vertex = vertex || new StreamVertex();
+        this.vertex = vertex ?? new StreamVertex(false);
     }
 
     vertex: StreamVertex<A>;
@@ -609,7 +609,7 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
     private source?: StreamVertex<A>;
 
     constructor() {
-        super();
+        super(false);
     }
 
     buildNewValue(): A | undefined {

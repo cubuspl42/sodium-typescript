@@ -9,7 +9,7 @@ import { StreamVertex, StreamSinkVertex } from './Vertex';
  */
 export class StreamSink<A> extends Stream<A> {
     constructor(f?: (l: A, r: A) => A) {
-        super(new StreamSinkVertex());
+        super(new StreamSinkVertex(false));
     }
 
     send(a: A): void {

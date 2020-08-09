@@ -1,9 +1,6 @@
-import { Vertex, CellVertex, ListenerVertex, StreamVertex, ConstCellVertex } from "./Vertex";
-import { Transaction } from "./Transaction";
+import { CellVertex, ConstCellVertex, ListenerVertex, StreamVertex } from "./Vertex";
 import { Lazy } from "./Lazy";
 import { HoldVertex, Stream } from "./Stream";
-import { Operational } from "./Operational";
-import { Tuple2 } from "./Tuple2";
 import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
 
 class CellMapVertex<A, B> extends CellVertex<B> {
@@ -12,7 +9,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         f: (a: A) => B,
         extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super(undefined, undefined, extraDependencies);
+        super(source.visited, extraDependencies);
 
         this.f = f;
         this.source = source;
@@ -50,7 +47,7 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
         cf: CellVertex<(a: A) => B>,
         ca: CellVertex<A>,
     ) {
-        super();
+        super(cf.visited || ca.visited);
 
         this.cf = cf;
         this.ca = ca;
@@ -94,8 +91,10 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
         cb: CellVertex<B>,
         f: (a: A, b: B) => C,
     ) {
-        super();
-
+        super(
+            ca.visited ||
+            cb.visited
+        );
         this.ca = ca;
         this.cb = cb;
         this.f = f;
@@ -146,7 +145,14 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         ce?: CellVertex<E>,
         cf?: CellVertex<F>,
     ) {
-        super();
+        super(
+            ca.visited ||
+            cb.visited ||
+            cc.visited ||
+            cd.visited ||
+            ce.visited ||
+            cf.visited
+        );
 
         this.ca = ca;
         this.cb = cb;
@@ -232,7 +238,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
 
 class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     constructor(ca: readonly Cell<A>[]) {
-        super();
+        super(ca.some((c) => c.vertex.visited));
 
         this.caa = ca;
     }
@@ -263,7 +269,8 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
 
 class SwitchCVertex<A> extends CellVertex<A> {
     constructor(cca: CellVertex<Cell<A>>) {
-        super();
+        super(cca.visited);
+        // What about the old_cca_value.visited? Loops...
 
         this.cca = cca;
     }
@@ -311,7 +318,13 @@ class SwitchCVertex<A> extends CellVertex<A> {
 
 class SwitchSVertex<A> extends StreamVertex<A> {
     constructor(csa: CellVertex<Stream<A>>) {
-        super();
+        // const osa = csa.oldValue.vertex;
+        // super(csa.visited || osa.visited);
+
+        // TODO: Fix this
+        // ^ Throws "CellLoop hasn't been looped yet" in some cases
+
+        super(csa.visited);
 
         this.csa = csa;
     }
