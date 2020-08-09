@@ -604,8 +604,6 @@ export class Stream<A> {
 }
 
 export class StreamLoopVertex<A> extends StreamVertex<A> {
-    isLooped = false;
-
     private source?: StreamVertex<A>;
 
     constructor() {
@@ -629,8 +627,9 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
     }
 
     loop(source: StreamVertex<A>): void {
-        if (this.isLooped)
+        if (this.source !== undefined) {
             throw new Error("StreamLoop looped more than once");
+        }
 
         this.source = source;
 
@@ -649,10 +648,6 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
  * A forward reference for a {@link Stream} equivalent to the Stream that is referenced.
  */
 export class StreamLoop<A> extends Stream<A> {
-    isLooped = false;
-
-    private source?: StreamVertex<A>;
-
     constructor() {
         super(new StreamLoopVertex());
     }
