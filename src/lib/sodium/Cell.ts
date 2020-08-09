@@ -558,7 +558,8 @@ export class Cell<A> {
         const vertex = new ListenerVertex(this.vertex, h);
         vertex.incRefCount();
 
-        h(this.vertex.oldValue);
+        const na = this.vertex.newValue ?? this.vertex.oldValue;
+        h(na);
 
         return () => {
             vertex.decRefCount();
