@@ -360,6 +360,47 @@ class SwitchSVertex<A> extends StreamVertex<A> {
     }
 }
 
+class CellCalmVertex<A> extends CellVertex<A> {
+    constructor(
+        source: CellVertex<A>,
+        eq: (l: A, r: A) => boolean,
+    ) {
+        super(source.visited, undefined);
+
+        this.eq = eq;
+        this.source = source;
+    }
+
+    private readonly source: CellVertex<A>;
+    private readonly eq: (l: A, r: A) => boolean;
+
+    initialize() {
+        super.initialize();
+        this.source.addDependent(this);
+    }
+
+    uninitialize() {
+        super.uninitialize();
+        this.source.removeDependent(this);
+    }
+
+    buildOldValue(): A {
+        return this.source.oldValue;
+    }
+
+    buildNewValue(): A | undefined {
+        const eq = this.eq;
+        const oa = this.oldValue;
+        const na = this.source.newValue;
+        if (!(eq(oa, na))) {
+            return na;
+        } else {
+            return undefined;
+        }
+    }
+}
+
+
 export class Cell<A> {
     vertex: CellVertex<A>;
 
@@ -530,8 +571,8 @@ export class Cell<A> {
      * When transforming a value from a larger type to a smaller type, it is likely for duplicate changes to become
      * propergated. This function insures only distinct changes get propergated.
      */
-    calm(eq: (a: A, b: A) => boolean): Cell<A> {
-        throw new Error();
+    calm(eq: (l: A, r: A) => boolean): Cell<A> {
+        return new Cell(undefined, undefined, new CellCalmVertex(this.vertex, eq));
     }
 
     /**
@@ -539,7 +580,7 @@ export class Cell<A> {
      * as its eq function. I.E. calling calmRefEq() is the same as calm((a,b) => a === b).
      */
     calmRefEq(): Cell<A> {
-        throw new Error();
+        return this.calm((l, r) => l === r);
     }
 
     /**
