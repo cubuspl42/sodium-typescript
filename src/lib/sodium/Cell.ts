@@ -597,6 +597,7 @@ export class Cell<A> {
      */
     listen(h: (a: A) => void): () => void {
         const vertex = new ListenerVertex(this.vertex, h);
+        // TODO: Figure out when ref count should be increased (loops...)
         vertex.incRefCount();
 
         const na = this.vertex.newValue ?? this.vertex.oldValue;

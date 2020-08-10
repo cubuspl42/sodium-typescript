@@ -593,6 +593,11 @@ export class Stream<A> {
         const vertex = new ListenerVertex(this.vertex, h);
         vertex.incRefCount();
 
+        const na = this.vertex.newValue;
+        if (na !== undefined) {
+            h(na);
+        }
+
         return () => {
             vertex.decRefCount();
         };

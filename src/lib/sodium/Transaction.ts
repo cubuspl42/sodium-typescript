@@ -83,6 +83,7 @@ export class Transaction {
   }
 
   close(): void {
+      // TODO: Handle in-transaction errors!
     const dfs = (roots: Set<Vertex>): Set_<Vertex> => {
       roots.forEach((v) => {
           this.visit(v);

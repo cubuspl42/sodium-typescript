@@ -1,14 +1,15 @@
 import {
-    StreamSink,
-    StreamLoop,
-    CellSink,
-    Transaction,
-    Tuple2,
-    Operational,
     Cell,
     CellLoop,
+    CellSink,
     getTotalRegistrations,
-    lambda1, Unit, Stream
+    lambda1,
+    Operational,
+    Stream,
+    StreamLoop,
+    StreamSink,
+    Transaction,
+    Tuple2
 } from '../../lib/Lib';
 
 afterEach(() => {
@@ -692,6 +693,27 @@ test('should test defer/split memory cycle', done => {
     });
     let kill = sl.listen(() => {
     });
+    kill();
+    done();
+});
+
+test("should test updates() doesn't miss the first value", (done) => {
+    const s1 = new StreamSink<number>();
+    const c = s1.hold(0);
+    const s2 = Operational.updates(c);
+
+    let out = -1;
+
+    const kill = s2.listen((a) => {
+        out = a;
+    });
+
+    Transaction.run(() => {
+        s1.send(1);
+    });
+
+    expect(out).toEqual(1);
+
     kill();
     done();
 });
