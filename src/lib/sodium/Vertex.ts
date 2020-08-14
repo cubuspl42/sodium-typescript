@@ -10,11 +10,17 @@ export function getTotalRegistrations(): number {
 let nextId = 0;
 
 export abstract class Vertex {
+    static all: Array<Vertex> = [];
+
     protected constructor(initialVisited: boolean) {
         this._visited = initialVisited;
     }
 
-    private id = ++nextId;
+    get typeName(): string | undefined {
+        return undefined;
+    }
+
+    readonly id = ++nextId;
 
     private _refCount = 0;
 
@@ -52,6 +58,7 @@ export abstract class Vertex {
         ++this._refCount;
         if (this._refCount == 1) {
             this.initialize();
+            Vertex.all.push(this);
         }
     }
 
@@ -62,6 +69,8 @@ export abstract class Vertex {
         --this._refCount;
         if (this._refCount == 0) {
             this.uninitialize();
+            const index = Vertex.all.indexOf(this);
+            Vertex.all.splice(index, 1);
         }
     }
 
@@ -80,6 +89,8 @@ export abstract class Vertex {
 
 export class StreamVertex<A> extends Vertex {
     processed = false;
+
+    protected _typeName?: string;
 
     readonly dependents = new Set<Vertex>();
 
@@ -114,6 +125,7 @@ export class StreamVertex<A> extends Vertex {
                 throw new Error("Stream/Cell new value cannot be null");
             }
             this._newValue = value;
+            this._typeName = this.typeName ?? typeName(value);
             this.processed = true;
             return value;
         } else {
@@ -165,8 +177,26 @@ export class StreamSinkVertex<A> extends StreamVertex<A> {
     }
 }
 
+function typeName(a: any) {
+    if (a instanceof Array) {
+        if (a.length > 0) {
+            return `Array<${typeName(a[0])}>`;
+        }
+    }
+    const type = typeof a;
+    if (type === "object") {
+        return a.constructor.name;
+    } else {
+        return type;
+    }
+}
+
 export abstract class CellVertex<A> extends StreamVertex<A> {
     _oldValue?: A;
+
+    get typeName(): string {
+        return this._typeName;
+    }
 
     get oldValue(): A {
         if (this._oldValue === undefined) {
@@ -174,6 +204,7 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
             if (a === undefined || a === null) {
                 throw new Error("Cell value cannot be undefined/null");
             }
+            this._typeName = this.typeName ?? typeName(a);
             this._oldValue = a;
         }
         return this._oldValue!;
@@ -215,6 +246,7 @@ export class ConstCellVertex<A> extends CellVertex<A> {
     constructor(initValue: A) {
         super(false);
         this._oldValue = initValue;
+        this._typeName = this.typeName ?? typeName(initValue);
         this.processed = true;
     }
 
