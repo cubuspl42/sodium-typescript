@@ -7,10 +7,14 @@ export function getTotalRegistrations(): number {
     return totalRegistrations;
 }
 
+let nextId = 0;
+
 export abstract class Vertex {
     protected constructor(initialVisited: boolean) {
         this._visited = initialVisited;
     }
+
+    private id = ++nextId;
 
     private _refCount = 0;
 
@@ -127,19 +131,23 @@ export class StreamVertex<A> extends Vertex {
         super.update();
     }
 
-    addDependent(vertex: Vertex): void {
+    addDependent(vertex: Vertex, weak?: boolean): void {
         this.dependents.add(vertex);
-        this.incRefCount();
+        if (weak !== true) {
+            this.incRefCount();
+        }
     }
 
-    removeDependent(vertex: Vertex) {
+    removeDependent(vertex: Vertex, weak?: boolean) {
         const wasRemoved = this.dependents.delete(vertex);
 
         if (!wasRemoved) {
             throw new Error(`Attempted to remove a non-dependent`);
         }
 
-        this.decRefCount();
+        if (weak !== true) {
+            this.decRefCount();
+        }
     }
 
     describe_(): string {
@@ -209,7 +217,7 @@ export class ConstCellVertex<A> extends CellVertex<A> {
         this._oldValue = initValue;
         this.processed = true;
     }
-    
+
     update() {
     }
 
@@ -219,26 +227,20 @@ export class ConstCellVertex<A> extends CellVertex<A> {
 }
 
 export class ListenerVertex<A> extends Vertex {
-    readonly source: StreamVertex<A>;
-
-    private readonly h: (a: A) => void;
-
     constructor(
-        source: StreamVertex<A>,
-        h: (a: A) => void,
+        readonly source: StreamVertex<A>,
+        readonly weak: boolean,
+        private readonly h: (a: A) => void,
     ) {
         super(source.visited);
-
-        this.source = source;
-        this.h = h;
     }
 
     initialize(): void {
-        this.source.addDependent(this);
+        this.source.addDependent(this, this.weak);
     }
 
     uninitialize(): void {
-        this.source.addDependent(this);
+        this.source.removeDependent(this, this.weak);
     }
 
     process(): void {

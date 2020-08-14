@@ -594,9 +594,10 @@ export class Cell<A> {
      *   or {@link StreamSink#send(Object)} in the handler.
      *   An exception will be thrown, because you are not meant to use this to create
      *   your own primitives.
+     * @param weak
      */
-    listen(h: (a: A) => void): () => void {
-        const vertex = new ListenerVertex(this.vertex, h);
+    listen(h: (a: A) => void, weak?: boolean): () => void {
+        const vertex = new ListenerVertex(this.vertex, weak ?? false, h);
         // TODO: Figure out when ref count should be increased (loops...)
         vertex.incRefCount();
 

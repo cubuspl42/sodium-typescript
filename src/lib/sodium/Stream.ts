@@ -589,8 +589,9 @@ export class Stream<A> {
         return new Stream(new StreamOnceVertex(this.vertex));
     }
 
-    listen(h: (a: A) => void): () => void {
-        const vertex = new ListenerVertex(this.vertex, h);
+    listen(h: (a: A) => void, weak?: boolean): () => void {
+        const vertex = new ListenerVertex(this.vertex, weak ?? false, h);
+
         vertex.incRefCount();
 
         const na = this.vertex.newValue;
