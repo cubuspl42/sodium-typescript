@@ -1,27 +1,34 @@
 import { Cell } from "./Cell";
-import { Lazy } from "./Lazy";
 import { Transaction } from "./Transaction";
-import { StreamLoop } from "./Stream";
 import { CellVertex } from "./Vertex";
+
+export interface CellLoopOptions {
+    weak: boolean;
+}
 
 class CellLoopVertex<A> extends CellVertex<A> {
     private source?: CellVertex<A>;
 
-    constructor() {
+    private readonly weak: boolean;
+
+
+    constructor(options: CellLoopOptions) {
         super(false);
+        this.weak = options?.weak ?? false;
+
         if (Transaction.currentTransaction === null)
             throw new Error("StreamLoop/CellLoop must be used within an explicit transaction");
     }
 
     initialize(): void {
         if (this.source !== undefined) {
-            this.source.addDependent(this);
+            this.source.addDependent(this, this.weak);
             // this._oldValue = this.source.oldValue;
         }
     }
 
     uninitialize(): void {
-        this.source.removeDependent(this);
+        this.source.removeDependent(this, this.weak);
     }
 
     buildOldValue(): A {
@@ -47,7 +54,7 @@ class CellLoopVertex<A> extends CellVertex<A> {
         this.source = source;
 
         if (this.refCount() > 0) {
-            source.addDependent(this);
+            source.addDependent(this, this.weak);
         }
 
         // This doesn't really work yet (birth-transaction aliveness issue)
@@ -61,8 +68,8 @@ class CellLoopVertex<A> extends CellVertex<A> {
  * A forward reference for a {@link Cell} equivalent to the Cell that is referenced.
  */
 export class CellLoop<A> extends Cell<A> {
-    constructor() {
-        super(undefined, undefined, new CellLoopVertex());
+    constructor(options?: CellLoopOptions) {
+        super(undefined, undefined, new CellLoopVertex(options));
     }
 
     /**

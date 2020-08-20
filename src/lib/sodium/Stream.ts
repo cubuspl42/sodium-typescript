@@ -575,7 +575,7 @@ export class Stream<A> {
      * {@link Cell#sampleLazy()}.
      */
     accumLazy<S>(initState: Lazy<S>, f: (a: A, s: S) => S): Cell<S> {
-        const loop = new CellLoop<S>();
+        const loop = new CellLoop<S>({ weak: true });
         const out = this.snapshot(loop, f).holdLazy(initState);
         loop.loop(out);
         return out;
@@ -609,11 +609,18 @@ export class Stream<A> {
     }
 }
 
+export interface StreamLoopOptions {
+    weak: boolean;
+}
+
 export class StreamLoopVertex<A> extends StreamVertex<A> {
     private source?: StreamVertex<A>;
 
-    constructor() {
+    private readonly weak: boolean;
+
+    constructor(options?: StreamLoopOptions) {
         super(false);
+        this.weak = options?.weak ?? false;
     }
 
     buildNewValue(): A | undefined {
@@ -624,12 +631,12 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
     initialize() {
         const source = this.source;
         if (source !== undefined) {
-            source.addDependent(this);
+            source.addDependent(this, this.weak);
         }
     }
 
     uninitialize() {
-        this.source.removeDependent(this);
+        this.source.removeDependent(this, this.weak);
     }
 
     loop(source: StreamVertex<A>): void {
