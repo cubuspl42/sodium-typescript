@@ -715,6 +715,7 @@ export class StreamLoop<A> extends Stream<A> {
     }
 
     loop(sa_out: Stream<A>): void {
+        // TODO: Ensure stream is closed in the same event processor it was created
         (this.vertex as StreamLoopVertex<A>).loop(sa_out.vertex);
     }
 }

@@ -110,6 +110,11 @@ export class Transaction {
         visited.forEach((l) => l.update());
 
         Transaction.visited.clear();
+
+        // Sodium order:
+        // event processing
+        // cell value update
+        // listeners
     }
 
     static visitedVerticesCount = 0;
