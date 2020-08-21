@@ -62,6 +62,7 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
     private readonly ca: CellVertex<A>;
 
     initialize() {
+        super.initialize();
         this.cf.addDependent(this);
         this.ca.addDependent(this);
     }
@@ -69,6 +70,7 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
     uninitialize() {
         this.cf.removeDependent(this);
         this.ca.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -111,6 +113,7 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     private readonly f: (a: A, b: B) => C;
 
     initialize(): void {
+        super.initialize();
         this.ca.addDependent(this);
         this.cb.addDependent(this);
     }
@@ -119,6 +122,7 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     uninitialize(): void {
         this.ca.removeDependent(this);
         this.cb.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -179,6 +183,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
     private readonly f: (a?: A, b?: B, c?: C, d?: D, e?: E, f?: F) => G;
 
     initialize(): void {
+        super.initialize();
         this.ca?.addDependent(this);
         this.cb?.addDependent(this);
         this.cc?.addDependent(this);
@@ -194,6 +199,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         this.cd?.removeDependent(this);
         this.ce?.removeDependent(this);
         this.cf?.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -260,11 +266,13 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     private readonly caa: readonly Cell<A>[];
 
     initialize(): void {
+        super.initialize();
         this.caa.forEach((a) => a.vertex.addDependent(this));
     }
 
     uninitialize(): void {
         this.caa.forEach((a) => a.vertex.removeDependent(this));
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -294,6 +302,8 @@ class SwitchCVertex<A> extends CellVertex<A> {
     private readonly cca: CellVertex<Cell<A>>;
 
     initialize(): void {
+        super.initialize();
+        
         this.cca.addDependent(this);
         const ca = this.cca.oldValue;
         ca.vertex.addDependent(this);
@@ -304,6 +314,8 @@ class SwitchCVertex<A> extends CellVertex<A> {
         ca.vertex.removeDependent(this);
 
         this.cca.removeDependent(this);
+        
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -345,6 +357,7 @@ class SwitchSVertex<A> extends StreamVertex<A> {
     private readonly csa: CellVertex<Stream<A>>;
 
     initialize(): void {
+        super.initialize();
         this.csa.addDependent(this);
         this.csa.oldValue?.vertex?.addDependent(this);
     }
@@ -352,6 +365,7 @@ class SwitchSVertex<A> extends StreamVertex<A> {
     uninitialize(): void {
         this.csa.removeDependent(this);
         this.csa.oldValue?.vertex?.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {

@@ -31,6 +31,7 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
     private readonly newSignals = new Set<Stream<A>>();
 
     initialize(): void {
+        super.initialize();
         this.signals.forEach((signal) => {
             signal.vertex.addDependent(this);
         });
@@ -46,6 +47,7 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
         this.newSignals.forEach((signal) => {
             signal.vertex.removeDependent(this);
         });
+        super.uninitialize();
     }
 
     buildVisited(): boolean {

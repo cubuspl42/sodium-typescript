@@ -4,7 +4,7 @@ import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import { CellLoop } from "./CellLoop";
-import { Lambda1, Lambda1_toFunction } from "./Lambda";
+import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     constructor(
@@ -24,6 +24,7 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     private readonly f: (a: A, b: B) => C;
 
     initialize(): void {
+        super.initialize();
         this.sa.addDependent(this);
         this.cb.incRefCount(); // (?)
     }
@@ -31,6 +32,7 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     uninitialize(): void {
         this.cb.decRefCount(); // (?)
         this.sa.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -72,6 +74,7 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
     private readonly f: (a: A, b: B, c: C, d: D) => E;
 
     initialize(): void {
+        super.initialize();
         this.sa.addDependent(this);
         this.cb.incRefCount();
         this.cc.incRefCount();
@@ -83,6 +86,7 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
         this.cc.incRefCount();
         this.cb.incRefCount();
         this.sa.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -121,11 +125,13 @@ export class HoldVertex<A> extends CellVertex<A> {
     private readonly steps: StreamVertex<A>;
 
     initialize(): void {
+        super.initialize();
         this.steps.addDependent(this);
     }
 
     uninitialize(): void {
         this.steps.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -158,11 +164,13 @@ class FilterVertex<A> extends StreamVertex<A> {
     private readonly f: (a: A) => boolean;
 
     initialize(): void {
+        super.initialize();
         this.source.addDependent(this);
     }
 
     uninitialize(): void {
         this.source.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -187,8 +195,9 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
     constructor(
         source: StreamVertex<A>,
         f: (a: A) => B,
+        extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super();
+        super(extraDependencies);
 
         this.source = source;
         this.f = f;
@@ -198,11 +207,13 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
     private readonly f: (a: A) => B;
 
     initialize(): void {
+        super.initialize();
         this.source.addDependent(this);
     }
 
     uninitialize(): void {
         this.source.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -236,6 +247,7 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
     private readonly f: (a0: A, a1: A) => A;
 
     initialize(): void {
+        super.initialize();
         this.s0.addDependent(this);
         this.s1.addDependent(this);
     }
@@ -243,6 +255,7 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
     uninitialize(): void {
         this.s1.removeDependent(this);
         this.s0.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -281,6 +294,7 @@ class StreamOrElseVertex<A> extends StreamVertex<A> {
     private readonly s1: StreamVertex<A>;
 
     initialize(): void {
+        super.initialize();
         this.s0.addDependent(this);
         this.s1.addDependent(this);
     }
@@ -288,6 +302,7 @@ class StreamOrElseVertex<A> extends StreamVertex<A> {
     uninitialize(): void {
         this.s1.removeDependent(this);
         this.s0.removeDependent(this);
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -318,11 +333,13 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
     private readonly streams: Stream<A>[];
 
     initialize(): void {
+        super.initialize();
         this.streams.forEach((s) => s.vertex.addDependent(this));
     }
 
     uninitialize(): void {
         this.streams.forEach((s) => s.vertex.removeDependent(this));
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -355,11 +372,13 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
     private hasFired = false;
 
     initialize(): void {
+        super.initialize();
         this.source.addDependent(this);
     }
 
     uninitialize(): void {
         this.source.removeDependent(this); // FIXME: removing twice?
+        super.uninitialize();
     }
 
     buildVisited(): boolean {
@@ -405,8 +424,9 @@ export class Stream<A> {
      *    cell. Apart from this the function must be <em>referentially transparent</em>.
      */
     map<B>(f: ((a: A) => B) | Lambda1<A, B>): Stream<B> {
-        const fn = Lambda1_toFunction(f); // TODO: deps
-        return new Stream(new StreamMapVertex(this.vertex, fn));
+        const fn = Lambda1_toFunction(f);
+        const deps = Lambda1_deps(f);
+        return new Stream(new StreamMapVertex(this.vertex, fn, deps));
     }
 
     /**
@@ -683,6 +703,7 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
     }
 
     initialize() {
+        super.initialize();
         const source = this.source;
         if (source !== undefined) {
             source.addDependent(this, this.weak);
@@ -691,6 +712,7 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
 
     uninitialize() {
         this.source.removeDependent(this, this.weak);
+        super.uninitialize();
     }
 
     loop(source: StreamVertex<A>): void {
