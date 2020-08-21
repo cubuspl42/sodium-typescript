@@ -1,5 +1,6 @@
 import { Stream } from "./Stream";
 import { Cell } from "./Cell";
+import { Transaction } from "./Transaction";
 
 let totalRegistrations: number = 0;
 
@@ -10,11 +11,11 @@ export function getTotalRegistrations(): number {
 let nextId = 0;
 
 export abstract class Vertex {
-    static all: Array<Vertex> = [];
-
-    protected constructor(initialVisited: boolean) {
-        this._visited = initialVisited;
+    protected constructor() {
+        console.log();
     }
+
+    static all: Array<Vertex> = [];
 
     get typeName(): string | undefined {
         return undefined;
@@ -22,17 +23,26 @@ export abstract class Vertex {
 
     readonly id = ++nextId;
 
+    readonly birthTransactionId = Transaction.currentTransaction?.id;
+
     private _refCount = 0;
 
     name?: string;
 
     readonly dependents?: Set<Vertex>;
 
-    private _visited: boolean;
+    private _visited?: boolean = undefined;
 
     get visited(): boolean {
-        return this._visited;
+        const visited = this._visited ?? this.buildVisited();
+        return visited;
     }
+
+    get visitedRaw(): boolean {
+        return this._visited ?? false;
+    }
+
+    abstract buildVisited(): boolean;
 
     markVisited(): void {
         this._visited = true;
@@ -87,7 +97,7 @@ export abstract class Vertex {
     }
 }
 
-export class StreamVertex<A> extends Vertex {
+export abstract class StreamVertex<A> extends Vertex {
     processed = false;
 
     protected _typeName?: string;
@@ -97,10 +107,9 @@ export class StreamVertex<A> extends Vertex {
     readonly extraDependencies: ReadonlyArray<Vertex>;
 
     constructor(
-        initialVisited: boolean,
         extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super(initialVisited);
+        super();
         this.extraDependencies =
             extraDependencies !== undefined ?
                 extraDependencies.map((d) => d.vertex) : [];
@@ -117,9 +126,13 @@ export class StreamVertex<A> extends Vertex {
     _newValue?: A;
 
     get newValue(): A | undefined {
+        const visited = this.visited;
+        // const visited = true;
+        // TODO: Re-enable the visited vertex optimization
+        // Disabling because of switchC on cell loop birth-visited issue
         if (this._newValue !== undefined) {
             return this._newValue;
-        } else if (this.visited && !this.processed) {
+        } else if (visited && !this.processed) {
             const value = this.buildNewValue();
             if (value === null) {
                 throw new Error("Stream/Cell new value cannot be null");
@@ -175,6 +188,10 @@ export class StreamSinkVertex<A> extends StreamVertex<A> {
     fire(a: A) {
         this._newValue = a;
     }
+
+    buildVisited(): boolean {
+        return false;
+    }
 }
 
 function typeName(a: any) {
@@ -211,12 +228,10 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
     }
 
     constructor(
-        initialVisited: boolean,
         extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super(initialVisited, extraDependencies);
+        super(extraDependencies);
     }
-
 
     buildOldValue(): A {
         throw new Error("buildOldValue implementation is not provided");
@@ -240,11 +255,15 @@ export class CellSinkVertex<A> extends CellVertex<A> {
     fire(a: A): void {
         this._newValue = a;
     }
+
+    buildVisited(): boolean {
+        return false;
+    }
 }
 
 export class ConstCellVertex<A> extends CellVertex<A> {
     constructor(initValue: A) {
-        super(false);
+        super();
         this._oldValue = initValue;
         this._typeName = this.typeName ?? typeName(initValue);
         this.processed = true;
@@ -256,6 +275,10 @@ export class ConstCellVertex<A> extends CellVertex<A> {
     describe_(): string {
         return `, value: ${this.oldValue}`;
     }
+
+    buildVisited(): boolean {
+        return false;
+    }
 }
 
 export class ListenerVertex<A> extends Vertex {
@@ -264,7 +287,11 @@ export class ListenerVertex<A> extends Vertex {
         readonly weak: boolean,
         private readonly h: (a: A) => void,
     ) {
-        super(source.visited);
+        super();
+    }
+
+    buildVisited(): boolean {
+        return this.source.visited;
     }
 
     initialize(): void {

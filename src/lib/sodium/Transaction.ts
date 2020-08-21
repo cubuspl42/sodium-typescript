@@ -49,7 +49,7 @@ class Set_<A> {
 }
 
 function _visit(set: Set_<Vertex>, vertex: Vertex): void {
-  if (vertex.visited) return;
+  if (vertex.visitedRaw) return;
 
   vertex.markVisited();
 
@@ -60,22 +60,22 @@ function _visit(set: Set_<Vertex>, vertex: Vertex): void {
   set.add(vertex);
 }
 
+let nextId = 0;
+
 export class Transaction {
+  readonly id = ++nextId;
+
   private roots = new Set<Vertex>();
 
-  private effects = new Set<() => void>();
-
   private static visited = new Set_<Vertex>();
+
+  private postQueue: Array<() => void> = [];
 
   constructor() {
   }
 
   addRoot(root: Vertex) {
     this.roots.add(root);
-  }
-
-  addEffect(effect: () => void) {
-    this.effects.add(effect);
   }
 
   visit(v: Vertex): void {
@@ -105,9 +105,9 @@ export class Transaction {
       v.postprocess();
     });
 
-    visited.forEach((l) => l.update());
+    this.postQueue.forEach((h) => h());
 
-    this.effects.forEach((effect) => effect());
+    visited.forEach((l) => l.update());
 
     Transaction.visited.clear();
   }
@@ -150,5 +150,9 @@ export class Transaction {
     } else {
       return f(ct);
     }
+  }
+
+  public static post<A>(h: () => void): void {
+    Transaction.currentTransaction!.postQueue.push(h);
   }
 }

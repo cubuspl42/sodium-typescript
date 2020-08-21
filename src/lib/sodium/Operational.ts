@@ -1,7 +1,6 @@
 import { Stream } from "./Stream";
 import { Cell } from "./Cell";
 import { Transaction } from "./Transaction";
-import { Unit } from "./Unit";
 import { CellVertex, StreamVertex } from "./Vertex";
 
 class ValueVertex<A> extends StreamVertex<A> {
@@ -10,8 +9,7 @@ class ValueVertex<A> extends StreamVertex<A> {
     constructor(
         source: CellVertex<A>,
     ) {
-        super(source.visited);
-
+        super();
         this.source = source;
     }
 
@@ -23,6 +21,10 @@ class ValueVertex<A> extends StreamVertex<A> {
 
     uninitialize(): void {
         this.source.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.source.visited;
     }
 
     buildNewValue(): A | undefined {
@@ -66,21 +68,21 @@ export class Operational {
         });
     }
 
-	/**
-	 * Push each event onto a new transaction guaranteed to come before the next externally
-	 * initiated transaction. Same as {@link split(Stream)} but it works on a single value.
-	 */
+    /**
+     * Push each event onto a new transaction guaranteed to come before the next externally
+     * initiated transaction. Same as {@link split(Stream)} but it works on a single value.
+     */
     static defer<A>(s: Stream<A>): Stream<A> {
         throw new Error();
     }
 
-	/**
-	 * Push each event in the list onto a newly created transaction guaranteed
-	 * to come before the next externally initiated transaction. Note that the semantics
-	 * are such that two different invocations of split() can put events into the same
-	 * new transaction, so the resulting stream's events could be simultaneous with
-	 * events output by split() or {@link defer(Stream)} invoked elsewhere in the code.
-	 */
+    /**
+     * Push each event in the list onto a newly created transaction guaranteed
+     * to come before the next externally initiated transaction. Note that the semantics
+     * are such that two different invocations of split() can put events into the same
+     * new transaction, so the resulting stream's events could be simultaneous with
+     * events output by split() or {@link defer(Stream)} invoked elsewhere in the code.
+     */
     static split<A>(s: Stream<Array<A>>): Stream<A> {
         throw new Error();
     }

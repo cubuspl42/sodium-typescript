@@ -12,7 +12,7 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         cb: CellVertex<B>,
         f: (a: A, b: B) => C,
     ) {
-        super(sa.visited);
+        super();
 
         this.f = f;
         this.sa = sa;
@@ -33,6 +33,10 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         this.sa.removeDependent(this);
     }
 
+    buildVisited(): boolean {
+        return this.sa.visited;
+    }
+
     buildNewValue(): C | undefined {
         const f = this.f;
         const na = this.sa.newValue;
@@ -40,6 +44,7 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         const nb = na !== undefined ? f(na, b) : undefined;
         return nb;
     }
+
 }
 
 class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
@@ -50,7 +55,7 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
         cd: CellVertex<D>,
         f: (a: A, b: B, c: C, d: D) => E,
     ) {
-        super(sa.visited);
+        super();
 
         this.f = f;
         this.sa = sa;
@@ -80,6 +85,10 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
         this.sa.removeDependent(this);
     }
 
+    buildVisited(): boolean {
+        return this.sa.visited;
+    }
+
     buildNewValue(): E | undefined {
         const na = this.sa.newValue;
 
@@ -101,7 +110,7 @@ export class HoldVertex<A> extends CellVertex<A> {
         initValue: Lazy<A>,
         steps: StreamVertex<A>,
     ) {
-        super(steps.visited);
+        super();
 
         this.initValue = initValue;
         this.steps = steps;
@@ -117,6 +126,10 @@ export class HoldVertex<A> extends CellVertex<A> {
 
     uninitialize(): void {
         this.steps.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.steps.visited;
     }
 
     buildOldValue(): A {
@@ -135,7 +148,7 @@ class FilterVertex<A> extends StreamVertex<A> {
         source: StreamVertex<A>,
         f: (a: A) => boolean,
     ) {
-        super(source.visited);
+        super();
 
         this.source = source;
         this.f = f;
@@ -150,6 +163,10 @@ class FilterVertex<A> extends StreamVertex<A> {
 
     uninitialize(): void {
         this.source.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.source.visited;
     }
 
     buildNewValue(): A | undefined {
@@ -171,7 +188,7 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
         source: StreamVertex<A>,
         f: (a: A) => B,
     ) {
-        super(source.visited);
+        super();
 
         this.source = source;
         this.f = f;
@@ -188,6 +205,10 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
         this.source.removeDependent(this);
     }
 
+    buildVisited(): boolean {
+        return this.source.visited;
+    }
+
     buildNewValue(): B | undefined {
         const f = this.f;
         const na = this.source.newValue;
@@ -202,7 +223,7 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
         s1: StreamVertex<A>,
         f: (a0: A, a1: A) => A,
     ) {
-        super(s0.visited || s1.visited);
+        super();
 
         this.s0 = s0;
         this.s1 = s1;
@@ -222,6 +243,10 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
     uninitialize(): void {
         this.s1.removeDependent(this);
         this.s0.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.s0.visited || this.s1.visited;
     }
 
     buildNewValue(): A | undefined {
@@ -246,7 +271,7 @@ class StreamOrElseVertex<A> extends StreamVertex<A> {
         s0: StreamVertex<A>,
         s1: StreamVertex<A>,
     ) {
-        super(s0.visited || s1.visited);
+        super();
 
         this.s0 = s0;
         this.s1 = s1;
@@ -265,6 +290,10 @@ class StreamOrElseVertex<A> extends StreamVertex<A> {
         this.s0.removeDependent(this);
     }
 
+    buildVisited(): boolean {
+        return this.s0.visited || this.s1.visited;
+    }
+
     buildNewValue(): A | undefined {
         const n0 = this.s0.newValue;
 
@@ -281,7 +310,7 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
     constructor(
         streams: Stream<A>[],
     ) {
-        super(streams.some((s) => s.vertex.visited));
+        super();
 
         this.streams = streams;
     }
@@ -294,6 +323,10 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
 
     uninitialize(): void {
         this.streams.forEach((s) => s.vertex.removeDependent(this));
+    }
+
+    buildVisited(): boolean {
+        return this.streams.some((s) => s.vertex.visited);
     }
 
     buildNewValue(): A | undefined {
@@ -312,7 +345,7 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
     constructor(
         source: StreamVertex<A>,
     ) {
-        super(source.visited);
+        super();
 
         this.source = source;
     }
@@ -329,6 +362,10 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
         this.source.removeDependent(this); // FIXME: removing twice?
     }
 
+    buildVisited(): boolean {
+        return this.source.visited;
+    }
+
     buildNewValue(): A | undefined {
         const na = this.source.newValue;
 
@@ -341,9 +378,15 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
     }
 }
 
+class StreamNeverVertex<A> extends StreamVertex<A> {
+    buildVisited(): boolean {
+        return false;
+    }
+}
+
 export class Stream<A> {
     constructor(vertex?: StreamVertex<A>) {
-        this.vertex = vertex ?? new StreamVertex(false);
+        this.vertex = vertex ?? new StreamNeverVertex();
     }
 
     vertex: StreamVertex<A>;
@@ -619,13 +662,24 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
     private readonly weak: boolean;
 
     constructor(options?: StreamLoopOptions) {
-        super(false);
+        super();
         this.weak = options?.weak ?? false;
     }
 
+    buildVisited(): boolean {
+        const source = this.source;
+        if (source === undefined) {
+            throw new Error("StreamLoop hasn't been looped yet");
+        }
+        return source.visited;
+    }
+
     buildNewValue(): A | undefined {
-        // TODO: Better exception message?
-        return this.source!.newValue;
+        if (this.source === undefined) {
+            throw new Error("Cannot build the new value of an unlooped StreamLoop");
+        } else {
+            return this.source!.newValue;
+        }
     }
 
     initialize() {
@@ -648,11 +702,6 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
 
         if (this.refCount() > 0) {
             source.addDependent(this);
-        }
-
-        // This doesn't really work yet (birth-transaction aliveness issue)
-        if (source.visited) {
-            Transaction.currentTransaction.visit(this);
         }
     }
 }

@@ -9,7 +9,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         f: (a: A) => B,
         extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super(source.visited, extraDependencies);
+        super(extraDependencies);
 
         this.f = f;
         this.source = source;
@@ -29,6 +29,10 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         this.source.removeDependent(this);
     }
 
+    buildVisited(): boolean {
+        return this.source.visited;
+    }
+
     buildOldValue(): B {
         const f = this.f;
         return f(this.source.oldValue);
@@ -40,6 +44,7 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         const nb = na !== undefined ? f(na) : undefined;
         return nb;
     }
+
 }
 
 class CellApplyVertex<A, B> extends CellVertex<B> {
@@ -47,7 +52,7 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
         cf: CellVertex<(a: A) => B>,
         ca: CellVertex<A>,
     ) {
-        super(cf.visited || ca.visited);
+        super();
 
         this.cf = cf;
         this.ca = ca;
@@ -64,6 +69,10 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
     uninitialize() {
         this.cf.removeDependent(this);
         this.ca.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.cf.visited || this.ca.visited;
     }
 
     buildOldValue(): B {
@@ -91,10 +100,7 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
         cb: CellVertex<B>,
         f: (a: A, b: B) => C,
     ) {
-        super(
-            ca.visited ||
-            cb.visited
-        );
+        super();
         this.ca = ca;
         this.cb = cb;
         this.f = f;
@@ -113,6 +119,10 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
     uninitialize(): void {
         this.ca.removeDependent(this);
         this.cb.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.ca.visited || this.cb.visited;
     }
 
     buildOldValue(): C {
@@ -146,12 +156,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         cf?: CellVertex<F>,
     ) {
         super(
-            ca.visited ||
-            cb.visited ||
-            cc.visited ||
-            cd.visited ||
-            ce.visited ||
-            cf.visited
+
         );
 
         this.ca = ca;
@@ -189,6 +194,15 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         this.cd?.removeDependent(this);
         this.ce?.removeDependent(this);
         this.cf?.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.ca.visited ||
+            this.cb.visited ||
+            this.cc.visited ||
+            this.cd.visited ||
+            this.ce.visited ||
+            this.cf.visited;
     }
 
     buildOldValue(): G {
@@ -238,7 +252,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
 
 class CellLiftArrayVertex<A> extends CellVertex<A[]> {
     constructor(ca: readonly Cell<A>[]) {
-        super(ca.some((c) => c.vertex.visited));
+        super();
 
         this.caa = ca;
     }
@@ -251,6 +265,10 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
 
     uninitialize(): void {
         this.caa.forEach((a) => a.vertex.removeDependent(this));
+    }
+
+    buildVisited(): boolean {
+        return this.caa.some((c) => c.vertex.visited);
     }
 
     buildOldValue(): A[] {
@@ -269,9 +287,7 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
 
 class SwitchCVertex<A> extends CellVertex<A> {
     constructor(cca: CellVertex<Cell<A>>) {
-        super(cca.visited);
-        // What about the old_cca_value.visited? Loops...
-
+        super();
         this.cca = cca;
     }
 
@@ -288,6 +304,10 @@ class SwitchCVertex<A> extends CellVertex<A> {
         ca.vertex.removeDependent(this);
 
         this.cca.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.cca.newValue?.vertex.visited === true;
     }
 
     buildOldValue(): A {
@@ -309,7 +329,7 @@ class SwitchCVertex<A> extends CellVertex<A> {
         const oca = this.cca.oldValue.vertex;
         const nca = this.cca.newValue?.vertex;
 
-        if (nca !== undefined) {
+        if (nca !== undefined && this.refCount() > 0) {
             oca.removeDependent(this);
             nca.addDependent(this);
         }
@@ -318,14 +338,7 @@ class SwitchCVertex<A> extends CellVertex<A> {
 
 class SwitchSVertex<A> extends StreamVertex<A> {
     constructor(csa: CellVertex<Stream<A>>) {
-        // const osa = csa.oldValue.vertex;
-        // super(csa.visited || osa.visited);
-
-        // TODO: Fix this
-        // ^ Throws "CellLoop hasn't been looped yet" in some cases
-
-        super(csa.visited);
-
+        super();
         this.csa = csa;
     }
 
@@ -341,6 +354,10 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         this.csa.oldValue?.vertex?.removeDependent(this);
     }
 
+    buildVisited(): boolean {
+        return this.csa.oldValue?.vertex.visited === true;
+    }
+
     buildNewValue(): A | undefined {
         const osa = this.csa.oldValue.vertex;
         return osa.newValue;
@@ -350,10 +367,10 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         const osa = this.csa.oldValue.vertex;
         const nsa = this.csa.newValue?.vertex;
 
-        // This is done in `postBuildNewValue`, not `buildNewValue`, because evaluating `csa.newValue` in `buildNewValue` doesn't
-        // work when the new value of `csa` depends on the new value of this stream (which is not impossible).
+        // This is done in `postprocess`, not `buildNewValue`, because evaluating `csa.newValue` in `buildNewValue`
+        // doesn't work when the new value of `csa` depends on the new value of this stream (which is not impossible).
         // TODO: Check how Sodium master handles this
-        if (nsa !== undefined) {
+        if (nsa !== undefined && this.refCount() > 0) {
             osa.removeDependent(this);
             nsa.addDependent(this);
         }
@@ -365,7 +382,7 @@ class CellCalmVertex<A> extends CellVertex<A> {
         source: CellVertex<A>,
         eq: (l: A, r: A) => boolean,
     ) {
-        super(source.visited, undefined);
+        super(undefined);
 
         this.eq = eq;
         this.source = source;
@@ -382,6 +399,10 @@ class CellCalmVertex<A> extends CellVertex<A> {
     uninitialize() {
         super.uninitialize();
         this.source.removeDependent(this);
+    }
+
+    buildVisited(): boolean {
+        return this.source.visited;
     }
 
     buildOldValue(): A {

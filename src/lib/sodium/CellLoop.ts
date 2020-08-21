@@ -11,9 +11,8 @@ class CellLoopVertex<A> extends CellVertex<A> {
 
     private readonly weak: boolean;
 
-
     constructor(options: CellLoopOptions) {
-        super(false);
+        super();
         this.weak = options?.weak ?? false;
 
         if (Transaction.currentTransaction === null)
@@ -29,6 +28,14 @@ class CellLoopVertex<A> extends CellVertex<A> {
 
     uninitialize(): void {
         this.source.removeDependent(this, this.weak);
+    }
+
+    buildVisited(): boolean {
+        const source = this.source;
+        if (source === undefined) {
+            throw new Error("CellLoop hasn't been looped yet");
+        }
+        return source.visited;
     }
 
     buildOldValue(): A {
@@ -55,11 +62,6 @@ class CellLoopVertex<A> extends CellVertex<A> {
 
         if (this.refCount() > 0) {
             source.addDependent(this, this.weak);
-        }
-
-        // This doesn't really work yet (birth-transaction aliveness issue)
-        if (source.visited) {
-            Transaction.currentTransaction.visit(this);
         }
     }
 }
