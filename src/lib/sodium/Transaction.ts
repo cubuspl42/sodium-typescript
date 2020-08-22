@@ -82,6 +82,10 @@ export class Transaction {
         _visit(Transaction.visited, v);
     }
 
+    postEnqueue(h: () => void): void {
+        this.postQueue.push(h);
+    }
+
     close(): void {
         // TODO: Handle in-transaction errors!
         const dfs = (roots: Set<Vertex>): Set_<Vertex> => {
@@ -98,7 +102,8 @@ export class Transaction {
         this.roots.clear();
 
         visited.forEach((v) => {
-            v.process();
+            v.process(this);
+            //  v.postprocess(); (can it be called here?)
         });
 
         visited.forEach((v) => {
@@ -158,6 +163,6 @@ export class Transaction {
     }
 
     public static post<A>(h: () => void): void {
-        Transaction.currentTransaction!.postQueue.push(h);
+        Transaction.currentTransaction!.postEnqueue(h);
     }
 }

@@ -54,7 +54,7 @@ export abstract class Vertex {
     uninitialize(): void {
     }
 
-    process(): void {
+    process(t: Transaction): void {
     }
 
     postprocess(): void {
@@ -302,7 +302,37 @@ export class ListenerVertex<A> extends Vertex {
         this.source.removeDependent(this, this.weak);
     }
 
-    process(): void {
+    process(t: Transaction): void {
+        const a = this.source.newValue;
+        if (a !== undefined) {
+            t.postEnqueue(() => {
+                this.h(a);
+            });
+        }
+    }
+}
+
+export class ProcessVertex<A> extends Vertex {
+    constructor(
+        readonly source: StreamVertex<A>,
+        private readonly h: (a: A) => void,
+    ) {
+        super();
+    }
+
+    buildVisited(): boolean {
+        return this.source.visited;
+    }
+
+    initialize(): void {
+        this.source.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.source.removeDependent(this);
+    }
+
+    process(t: Transaction): void {
         const a = this.source.newValue;
         if (a !== undefined) {
             this.h(a);

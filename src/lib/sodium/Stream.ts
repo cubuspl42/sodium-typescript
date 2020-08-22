@@ -1,4 +1,4 @@
-import { CellVertex, ListenerVertex, StreamVertex } from "./Vertex";
+import { CellVertex, ListenerVertex, ProcessVertex, StreamVertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
@@ -661,6 +661,19 @@ export class Stream<A> {
         if (na !== undefined) {
             h(na);
         }
+
+        return () => {
+            vertex.decRefCount();
+        };
+    }
+
+
+    // Low-level listen-like primitive running provided handler in the processing phase
+    // TODO: Nuke this?
+    process(h: (a: A) => void): () => void {
+        const vertex = new ProcessVertex(this.vertex, h);
+
+        vertex.incRefCount();
 
         return () => {
             vertex.decRefCount();
