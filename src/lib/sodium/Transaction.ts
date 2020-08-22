@@ -110,7 +110,10 @@ export class Transaction {
             v.postprocess();
         });
 
-        this.postQueue.forEach((h) => h());
+        while(this.postQueue.length > 0) {
+           const h =  this.postQueue.shift();
+           h();
+        }
 
         visited.forEach((l) => l.update());
 

@@ -146,6 +146,10 @@ export abstract class StreamVertex<A> extends Vertex {
         }
     }
 
+    process(): void {
+        this.newValue;
+    }
+
     buildNewValue(): A | undefined {
         return undefined;
     }
