@@ -2,6 +2,7 @@ export { lambda1, lambda2, lambda3, lambda4, lambda5, lambda6 } from "./sodium/L
 export { Stream, StreamLoop } from "./sodium/Stream";
 export { StreamSink } from "./sodium/StreamSink";
 export { StreamSlot } from "./sodium/StreamSlot";
+export { StreamSource } from "./sodium/StreamSource";
 export { Cell } from "./sodium/Cell";
 export { CellLoop } from "./sodium/CellLoop";
 export { CellSink } from "./sodium/CellSink";

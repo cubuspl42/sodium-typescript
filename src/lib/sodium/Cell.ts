@@ -303,7 +303,7 @@ class SwitchCVertex<A> extends CellVertex<A> {
 
     initialize(): void {
         super.initialize();
-        
+
         this.cca.addDependent(this);
         const ca = this.cca.oldValue;
         ca.vertex.addDependent(this);
@@ -314,7 +314,7 @@ class SwitchCVertex<A> extends CellVertex<A> {
         ca.vertex.removeDependent(this);
 
         this.cca.removeDependent(this);
-        
+
         super.uninitialize();
     }
 
@@ -592,7 +592,7 @@ export class Cell<A> {
         return new Stream(new SwitchSVertex(csa.vertex));
     }
 
-    flatMap<R>(f: (value: A) => Cell<R>) {
+    flatMap<R>(f: ((a: A) => Cell<R>) | Lambda1<A, Cell<R>>) {
         return Cell.switchC(this.map(f));
     };
 

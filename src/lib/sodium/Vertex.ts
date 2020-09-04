@@ -190,7 +190,10 @@ export class StreamSinkVertex<A> extends StreamVertex<A> {
     }
 
     fire(a: A) {
-        this._newValue = a;
+        Transaction.run((t) => {
+            this._newValue = a;
+            t.addRoot(this);
+        });
     }
 
     buildVisited(): boolean {

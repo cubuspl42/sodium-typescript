@@ -1,5 +1,4 @@
 import { Stream } from "./Stream";
-import { Transaction } from "./Transaction";
 import { StreamSinkVertex } from './Vertex';
 
 /**
@@ -13,10 +12,7 @@ export class StreamSink<A> extends Stream<A> {
     }
 
     send(a: A): void {
-        Transaction.run((t) => {
-            const vertex = this.vertex as StreamSinkVertex<A>;
-            vertex.fire(a);
-            t.addRoot(vertex);
-        });
+        const vertex = this.vertex as StreamSinkVertex<A>;
+        vertex.fire(a);
     }
 }
