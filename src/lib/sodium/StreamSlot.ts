@@ -33,19 +33,19 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
     initialize(): void {
         super.initialize();
         this.signals.forEach((signal) => {
-            signal.vertex.addDependent(this);
+            signal._vertex.addDependent(this);
         });
         this.newSignals.forEach((signal) => {
-            signal.vertex.addDependent(this);
+            signal._vertex.addDependent(this);
         });
     }
 
     uninitialize(): void {
         this.signals.forEach((signal) => {
-            signal.vertex.removeDependent(this);
+            signal._vertex.removeDependent(this);
         });
         this.newSignals.forEach((signal) => {
-            signal.vertex.removeDependent(this);
+            signal._vertex.removeDependent(this);
         });
         super.uninitialize();
     }
@@ -55,7 +55,7 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
     }
 
     buildNewValue(): A | undefined {
-        const nas = Sets.mapNotUndefined(this.signals, (signal) => signal.vertex.newValue);
+        const nas = Sets.mapNotUndefined(this.signals, (signal) => signal._vertex.newValue);
         if (nas.size === 0) {
             return undefined;
         } else if (nas.size === 1) {
@@ -69,7 +69,7 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
     connect(signal: Stream<A>) {
         this.newSignals.add(signal);
         if (this.refCount() > 0) {
-            signal.vertex.addDependent(this);
+            signal._vertex.addDependent(this);
         }
 
         Transaction.post(() => {
@@ -87,7 +87,7 @@ export class StreamSlot<A> extends Stream<A> {
     }
 
     get slotVertex(): StreamSlotVertex<A> {
-        return this.vertex as StreamSlotVertex<A>;
+        return this._vertex as StreamSlotVertex<A>;
     }
 
     connect(signal: Stream<A>) {

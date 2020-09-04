@@ -1,4 +1,4 @@
-import { Vertex } from './Vertex';
+import { _Vertex } from './Vertex';
 
 let enableDebugFlag = false;
 
@@ -48,7 +48,7 @@ class Set_<A> {
     }
 }
 
-function _visit(set: Set_<Vertex>, vertex: Vertex): void {
+function _visit(set: Set_<_Vertex>, vertex: _Vertex): void {
     if (vertex.visitedRaw) return;
 
     vertex.markVisited();
@@ -65,20 +65,20 @@ let nextId = 0;
 export class Transaction {
     readonly id = ++nextId;
 
-    private roots = new Set<Vertex>();
+    private roots = new Set<_Vertex>();
 
-    private static visited = new Set_<Vertex>();
+    private static visited = new Set_<_Vertex>();
 
     private postQueue: Array<() => void> = [];
 
     constructor() {
     }
 
-    addRoot(root: Vertex) {
+    addRoot(root: _Vertex) {
         this.roots.add(root);
     }
 
-    visit(v: Vertex): void {
+    visit(v: _Vertex): void {
         _visit(Transaction.visited, v);
     }
 
@@ -88,7 +88,7 @@ export class Transaction {
 
     close(): void {
         // TODO: Handle in-transaction errors!
-        const dfs = (roots: Set<Vertex>): Set_<Vertex> => {
+        const dfs = (roots: Set<_Vertex>): Set_<_Vertex> => {
             roots.forEach((v) => {
                 this.visit(v);
             });

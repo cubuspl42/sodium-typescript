@@ -1,10 +1,11 @@
-import { CellVertex, ListenerVertex, ProcessVertex, StreamVertex } from "./Vertex";
+import { CellVertex, ListenerVertex, ProcessVertex, StreamVertex, Vertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import { CellLoop } from "./CellLoop";
 import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
+import { NaObject } from "./NaObject";
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
     constructor(
@@ -334,21 +335,21 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
 
     initialize(): void {
         super.initialize();
-        this.streams.forEach((s) => s.vertex.addDependent(this));
+        this.streams.forEach((s) => s._vertex.addDependent(this));
     }
 
     uninitialize(): void {
-        this.streams.forEach((s) => s.vertex.removeDependent(this));
+        this.streams.forEach((s) => s._vertex.removeDependent(this));
         super.uninitialize();
     }
 
     buildVisited(): boolean {
-        return this.streams.some((s) => s.vertex.visited);
+        return this.streams.some((s) => s._vertex.visited);
     }
 
     buildNewValue(): A | undefined {
-        const s = this.streams.find((s) => s.vertex.newValue !== undefined);
-        const na = s?.vertex.newValue;
+        const s = this.streams.find((s) => s._vertex.newValue !== undefined);
+        const na = s?._vertex.newValue;
 
         if (na !== undefined) {
             return na;
@@ -403,15 +404,19 @@ class StreamNeverVertex<A> extends StreamVertex<A> {
     }
 }
 
-export class Stream<A> {
+export class Stream<A> implements NaObject {
     constructor(vertex?: StreamVertex<A>) {
-        this.vertex = vertex ?? new StreamNeverVertex();
+        this._vertex = vertex ?? new StreamNeverVertex();
     }
 
-    vertex: StreamVertex<A>;
+    readonly _vertex: StreamVertex<A>;
+
+    get vertex(): Vertex {
+        return this._vertex;
+    }
 
     rename(name: string): Stream<A> {
-        this.vertex.name = name;
+        this._vertex.name = name;
         return this;
     }
 
@@ -426,7 +431,7 @@ export class Stream<A> {
     map<B>(f: ((a: A) => B) | Lambda1<A, B>): Stream<B> {
         const fn = Lambda1_toFunction(f);
         const deps = Lambda1_deps(f);
-        return new Stream(new StreamMapVertex(this.vertex, fn, deps));
+        return new Stream(new StreamMapVertex(this._vertex, fn, deps));
     }
 
     /**
@@ -451,7 +456,7 @@ export class Stream<A> {
      * be taken, because events can be dropped.
      */
     orElse(s: Stream<A>): Stream<A> {
-        return new Stream(new StreamOrElseVertex(this.vertex, s.vertex));
+        return new Stream(new StreamOrElseVertex(this._vertex, s._vertex));
     }
 
     /**
@@ -467,14 +472,14 @@ export class Stream<A> {
      *    {@link Cell#sample()}. Apart from this the function must be <em>referentially transparent</em>.
      */
     merge(s: Stream<A>, f: (left: A, right: A) => A): Stream<A> {
-        return new Stream(new StreamMergeVertex(this.vertex, s.vertex, f));
+        return new Stream(new StreamMergeVertex(this._vertex, s._vertex, f));
     }
 
     /**
      * Return a stream that only outputs events for which the predicate returns true.
      */
     filter(f: (a: A) => boolean): Stream<A> {
-        return new Stream(new FilterVertex(this.vertex, f));
+        return new Stream(new FilterVertex(this._vertex, f));
     }
 
     /**
@@ -500,7 +505,7 @@ export class Stream<A> {
      * at the time of the event firing, ignoring the stream's value.
      */
     snapshot1<B>(c: Cell<B>): Stream<B> {
-        return new Stream(new SnapshotVertex(this.vertex, c.vertex, (_, b) => b));
+        return new Stream(new SnapshotVertex(this._vertex, c._vertex, (_, b) => b));
     }
 
     /**
@@ -514,7 +519,7 @@ export class Stream<A> {
      * transaction.
      */
     snapshot<B, C>(b: Cell<B>, f: (a: A, b: B) => C): Stream<C> {
-        return new Stream(new SnapshotVertex(this.vertex, b.vertex, f));
+        return new Stream(new SnapshotVertex(this._vertex, b._vertex, f));
     }
 
     /**
@@ -544,7 +549,7 @@ export class Stream<A> {
     snapshot4<B, C, D, E>(b: Cell<B>, c: Cell<C>, d: Cell<D>,
                           f_: (a: A, b: B, c: C, d: D) => E): Stream<E> {
         return new Stream(new Snapshot4Vertex<A, B, C, D, E>(
-            this.vertex, b.vertex, c.vertex, d.vertex, f_));
+            this._vertex, b._vertex, c._vertex, d._vertex, f_));
     }
 
     /**
@@ -597,7 +602,7 @@ export class Stream<A> {
     holdLazy(initValue: Lazy<A>): Cell<A> {
         // TODO: Catch first value
         return Transaction.run((t) => {
-            const vertex = new HoldVertex(initValue, this.vertex);
+            const vertex = new HoldVertex(initValue, this._vertex);
             const cell = new Cell(undefined, undefined, vertex);
             // t.addRoot(vertex);
             return cell;
@@ -649,15 +654,15 @@ export class Stream<A> {
      * input stream, starting from the transaction in which once() was invoked.
      */
     once(): Stream<A> {
-        return new Stream(new StreamOnceVertex(this.vertex));
+        return new Stream(new StreamOnceVertex(this._vertex));
     }
 
     listen(h: (a: A) => void, weak?: boolean): () => void {
-        const vertex = new ListenerVertex(this.vertex, weak ?? false, h);
+        const vertex = new ListenerVertex(this._vertex, weak ?? false, h);
 
         vertex.incRefCount();
 
-        const na = this.vertex.newValue;
+        const na = this._vertex.newValue;
         if (na !== undefined) {
             h(na);
         }
@@ -671,7 +676,7 @@ export class Stream<A> {
     // Low-level listen-like primitive running provided handler in the processing phase
     // TODO: Nuke this?
     process(h: (a: A) => void): () => void {
-        const vertex = new ProcessVertex(this.vertex, h);
+        const vertex = new ProcessVertex(this._vertex, h);
 
         vertex.incRefCount();
 
@@ -751,6 +756,6 @@ export class StreamLoop<A> extends Stream<A> {
 
     loop(sa_out: Stream<A>): void {
         // TODO: Ensure stream is closed in the same event processor it was created
-        (this.vertex as StreamLoopVertex<A>).loop(sa_out.vertex);
+        (this._vertex as StreamLoopVertex<A>).loop(sa_out._vertex);
     }
 }

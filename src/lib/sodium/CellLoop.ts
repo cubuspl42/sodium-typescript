@@ -81,6 +81,6 @@ export class CellLoop<A> extends Cell<A> {
      * or {@link Transaction#runVoid(Runnable)}.
      */
     loop(a_out: Cell<A>): void {
-        (this.vertex as CellLoopVertex<A>).loop(a_out.vertex);
+        (this._vertex as CellLoopVertex<A>).loop(a_out._vertex);
     }
 }

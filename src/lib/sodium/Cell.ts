@@ -1,7 +1,9 @@
-import { CellVertex, ConstCellVertex, ListenerVertex, StreamVertex } from "./Vertex";
+import { CellVertex, ConstCellVertex, ListenerVertex, StreamVertex, Vertex } from "./Vertex";
+
 import { Lazy } from "./Lazy";
 import { HoldVertex, Stream } from "./Stream";
 import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
+import { NaObject } from "./NaObject";
 
 class CellMapVertex<A, B> extends CellVertex<B> {
     constructor(
@@ -267,25 +269,25 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
 
     initialize(): void {
         super.initialize();
-        this.caa.forEach((a) => a.vertex.addDependent(this));
+        this.caa.forEach((a) => a._vertex.addDependent(this));
     }
 
     uninitialize(): void {
-        this.caa.forEach((a) => a.vertex.removeDependent(this));
+        this.caa.forEach((a) => a._vertex.removeDependent(this));
         super.uninitialize();
     }
 
     buildVisited(): boolean {
-        return this.caa.some((c) => c.vertex.visited);
+        return this.caa.some((c) => c._vertex.visited);
     }
 
     buildOldValue(): A[] {
-        return this.caa.map(a => a.vertex.oldValue);
+        return this.caa.map(a => a._vertex.oldValue);
     }
 
     buildNewValue(): A[] | undefined {
-        if (this.caa.some((ca) => ca.vertex.newValue !== undefined)) {
-            const na = this.caa.map((ca) => ca.vertex.newValue ?? ca.vertex.oldValue);
+        if (this.caa.some((ca) => ca._vertex.newValue !== undefined)) {
+            const na = this.caa.map((ca) => ca._vertex.newValue ?? ca._vertex.oldValue);
             return na;
         } else {
             return undefined;
@@ -306,12 +308,12 @@ class SwitchCVertex<A> extends CellVertex<A> {
 
         this.cca.addDependent(this);
         const ca = this.cca.oldValue;
-        ca.vertex.addDependent(this);
+        ca._vertex.addDependent(this);
     }
 
     uninitialize(): void {
         const ca = this.cca.oldValue;
-        ca.vertex.removeDependent(this);
+        ca._vertex.removeDependent(this);
 
         this.cca.removeDependent(this);
 
@@ -319,17 +321,17 @@ class SwitchCVertex<A> extends CellVertex<A> {
     }
 
     buildVisited(): boolean {
-        return this.cca.newValue?.vertex.visited === true;
+        return this.cca.newValue?._vertex.visited === true;
     }
 
     buildOldValue(): A {
         const ca = this.cca.oldValue;
-        return ca.vertex.oldValue;
+        return ca._vertex.oldValue;
     }
 
     buildNewValue(): A | undefined {
-        const oca = this.cca.oldValue.vertex;
-        const nca = this.cca.newValue?.vertex;
+        const oca = this.cca.oldValue._vertex;
+        const nca = this.cca.newValue?._vertex;
         if (nca !== undefined) {
             return nca.newValue ?? nca.oldValue;
         } else {
@@ -338,8 +340,8 @@ class SwitchCVertex<A> extends CellVertex<A> {
     }
 
     postprocess(): void {
-        const oca = this.cca.oldValue.vertex;
-        const nca = this.cca.newValue?.vertex;
+        const oca = this.cca.oldValue._vertex;
+        const nca = this.cca.newValue?._vertex;
 
         if (nca !== undefined && this.refCount() > 0) {
             oca.removeDependent(this);
@@ -359,27 +361,27 @@ class SwitchSVertex<A> extends StreamVertex<A> {
     initialize(): void {
         super.initialize();
         this.csa.addDependent(this);
-        this.csa.oldValue?.vertex?.addDependent(this);
+        this.csa.oldValue?._vertex?.addDependent(this);
     }
 
     uninitialize(): void {
         this.csa.removeDependent(this);
-        this.csa.oldValue?.vertex?.removeDependent(this);
+        this.csa.oldValue?._vertex?.removeDependent(this);
         super.uninitialize();
     }
 
     buildVisited(): boolean {
-        return this.csa.oldValue?.vertex.visited === true;
+        return this.csa.oldValue?._vertex.visited === true;
     }
 
     buildNewValue(): A | undefined {
-        const osa = this.csa.oldValue.vertex;
+        const osa = this.csa.oldValue._vertex;
         return osa.newValue;
     }
 
     postprocess(): void {
-        const osa = this.csa.oldValue.vertex;
-        const nsa = this.csa.newValue?.vertex;
+        const osa = this.csa.oldValue._vertex;
+        const nsa = this.csa.newValue?._vertex;
 
         // This is done in `postprocess`, not `buildNewValue`, because evaluating `csa.newValue` in `buildNewValue`
         // doesn't work when the new value of `csa` depends on the new value of this stream (which is not impossible).
@@ -436,29 +438,33 @@ class CellCalmVertex<A> extends CellVertex<A> {
 }
 
 
-export class Cell<A> {
-    vertex: CellVertex<A>;
+export class Cell<A> implements NaObject {
+    readonly _vertex: CellVertex<A>;
+
+    get vertex(): Vertex {
+        return this._vertex;
+    }
 
     constructor(initValue?: A, str?: Stream<A>, vertex?: CellVertex<A>) {
         if (vertex !== undefined) {
-            this.vertex = vertex;
+            this._vertex = vertex;
         } else if (initValue !== undefined && str !== undefined) {
-            this.vertex = new HoldVertex<A>(new Lazy(() => initValue), str.vertex);
+            this._vertex = new HoldVertex<A>(new Lazy(() => initValue), str._vertex);
         } else {
-            this.vertex = new ConstCellVertex<A>(initValue!);
+            this._vertex = new ConstCellVertex<A>(initValue!);
         }
     }
 
     rename(name: string): Cell<A> {
-        this.vertex.name = name;
+        this._vertex.name = name;
         // Transaction.log(() => `renaming ${this.constructor.name} to "${name}"`);
         return this;
     }
 
     sample(): A {
-        // this.vertex.incRefCount(); // Was this ever needed?
-        const value = this.vertex.oldValue;
-        // this.vertex.decRefCount();
+        // this._vertex.incRefCount(); // Was this ever needed?
+        const value = this._vertex.oldValue;
+        // this._vertex.decRefCount();
         return value;
     }
 
@@ -468,7 +474,7 @@ export class Cell<A> {
      * @see Stream#holdLazy(Lazy) Stream.holdLazy()
      */
     sampleLazy(): Lazy<A> {
-        return new Lazy(() => this.vertex.oldValue);
+        return new Lazy(() => this._vertex.oldValue);
     }
 
     /**
@@ -480,7 +486,7 @@ export class Cell<A> {
         // TODO: Transaction.run
         const fn = Lambda1_toFunction(f);
         const deps = Lambda1_deps(f);
-        return new Cell(undefined, undefined, new CellMapVertex(this.vertex, fn, deps));
+        return new Cell(undefined, undefined, new CellMapVertex(this._vertex, fn, deps));
     }
 
     /**
@@ -490,7 +496,7 @@ export class Cell<A> {
      */
     lift<B, C>(b: Cell<B>, f: (a: A, b: B) => C): Cell<C> {
         // TODO: Transaction.run
-        return new Cell(undefined, undefined, new CellLiftVertex(this.vertex, b.vertex, f));
+        return new Cell(undefined, undefined, new CellLiftVertex(this._vertex, b._vertex, f));
     }
 
     /**
@@ -546,12 +552,12 @@ export class Cell<A> {
     ): Cell<G> {
         return new Cell(undefined, undefined, new CellLift6Vertex(
             fn0,
-            this.vertex,
-            b?.vertex,
-            c?.vertex,
-            d?.vertex,
-            e?.vertex,
-            f?.vertex,
+            this._vertex,
+            b?._vertex,
+            c?._vertex,
+            d?._vertex,
+            e?._vertex,
+            f?._vertex,
         ));
     }
 
@@ -575,21 +581,21 @@ export class Cell<A> {
      * primitive for all function lifting.
      */
     static apply<A, B>(cf: Cell<(a: A) => B>, ca: Cell<A>): Cell<B> {
-        return new Cell(undefined, undefined, new CellApplyVertex(cf.vertex, ca.vertex));
+        return new Cell(undefined, undefined, new CellApplyVertex(cf._vertex, ca._vertex));
     }
 
     /**
      * Unwrap a cell inside another cell to give a time-varying cell implementation.
      */
     static switchC<A>(cca: Cell<Cell<A>>): Cell<A> {
-        return new Cell(undefined, undefined, new SwitchCVertex(cca.vertex));
+        return new Cell(undefined, undefined, new SwitchCVertex(cca._vertex));
     }
 
     /**
      * Unwrap a stream inside a cell to give a time-varying stream implementation.
      */
     static switchS<A>(csa: Cell<Stream<A>>): Stream<A> {
-        return new Stream(new SwitchSVertex(csa.vertex));
+        return new Stream(new SwitchSVertex(csa._vertex));
     }
 
     flatMap<R>(f: ((a: A) => Cell<R>) | Lambda1<A, Cell<R>>) {
@@ -607,7 +613,7 @@ export class Cell<A> {
      * propergated. This function insures only distinct changes get propergated.
      */
     calm(eq: (l: A, r: A) => boolean): Cell<A> {
-        return new Cell(undefined, undefined, new CellCalmVertex(this.vertex, eq));
+        return new Cell(undefined, undefined, new CellCalmVertex(this._vertex, eq));
     }
 
     /**
@@ -632,11 +638,11 @@ export class Cell<A> {
      * @param weak
      */
     listen(h: (a: A) => void, weak?: boolean): () => void {
-        const vertex = new ListenerVertex(this.vertex, weak ?? false, h);
+        const vertex = new ListenerVertex(this._vertex, weak ?? false, h);
         // TODO: Figure out when ref count should be increased (loops...)
         vertex.incRefCount();
 
-        const na = this.vertex.newValue ?? this.vertex.oldValue;
+        const na = this._vertex.newValue ?? this._vertex.oldValue;
         h(na);
 
         return () => {

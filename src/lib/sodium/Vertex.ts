@@ -10,12 +10,20 @@ export function getTotalRegistrations(): number {
 
 let nextId = 0;
 
-export abstract class Vertex {
-    protected constructor() {
-        console.log();
+export interface Vertex {
+
+}
+
+export abstract class _Vertex implements Vertex {
+    private readonly extraDependencies: ReadonlyArray<Vertex>;
+
+    protected constructor(
+        extraDependencies?: ReadonlyArray<Vertex>,
+    ) {
+        this.extraDependencies = extraDependencies ?? [];
     }
 
-    static all: Array<Vertex> = [];
+    static all: Array<_Vertex> = [];
 
     get typeName(): string | undefined {
         return undefined;
@@ -29,7 +37,7 @@ export abstract class Vertex {
 
     name?: string;
 
-    readonly dependents?: Set<Vertex>;
+    readonly dependents?: Set<_Vertex>;
 
     private _visited?: boolean = undefined;
 
@@ -48,10 +56,12 @@ export abstract class Vertex {
         this._visited = true;
     }
 
-    initialize(): void {
+    protected initialize(): void {
+        this.extraDependencies.forEach((d) => (d as _Vertex).incRefCount());
     }
 
-    uninitialize(): void {
+    protected uninitialize(): void {
+        this.extraDependencies.forEach((d) => (d as _Vertex).decRefCount());
     }
 
     process(t: Transaction): void {
@@ -68,7 +78,7 @@ export abstract class Vertex {
         ++this._refCount;
         if (this._refCount == 1) {
             this.initialize();
-            Vertex.all.push(this);
+            _Vertex.all.push(this);
         }
     }
 
@@ -79,8 +89,8 @@ export abstract class Vertex {
         --this._refCount;
         if (this._refCount == 0) {
             this.uninitialize();
-            const index = Vertex.all.indexOf(this);
-            Vertex.all.splice(index, 1);
+            const index = _Vertex.all.indexOf(this);
+            _Vertex.all.splice(index, 1);
         }
     }
 
@@ -92,35 +102,25 @@ export abstract class Vertex {
         return `${this.constructor.name} {name: ${this.name ?? "unnamed"}${this.describe_()}}`;
     }
 
-    describe_(): string {
+    protected describe_(): string {
         return "";
     }
 }
 
-export abstract class StreamVertex<A> extends Vertex {
+export abstract class StreamVertex<A> extends _Vertex {
     processed = false;
 
     protected _typeName?: string;
 
-    readonly dependents = new Set<Vertex>();
-
-    readonly extraDependencies: ReadonlyArray<Vertex>;
+    readonly dependents = new Set<_Vertex>();
 
     constructor(
         extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super();
-        this.extraDependencies =
+        super(
             extraDependencies !== undefined ?
-                extraDependencies.map((d) => d.vertex) : [];
-    }
-
-    initialize(): void {
-        this.extraDependencies.forEach((d) => d.incRefCount());
-    }
-
-    uninitialize(): void {
-        this.extraDependencies.forEach((d) => d.decRefCount());
+                extraDependencies.map((d) => d._vertex) : []
+        );
     }
 
     _newValue?: A;
@@ -160,14 +160,14 @@ export abstract class StreamVertex<A> extends Vertex {
         super.update();
     }
 
-    addDependent(vertex: Vertex, weak?: boolean): void {
+    addDependent(vertex: _Vertex, weak?: boolean): void {
         this.dependents.add(vertex);
         if (weak !== true) {
             this.incRefCount();
         }
     }
 
-    removeDependent(vertex: Vertex, weak?: boolean) {
+    removeDependent(vertex: _Vertex, weak?: boolean) {
         const wasRemoved = this.dependents.delete(vertex);
 
         if (!wasRemoved) {
@@ -288,7 +288,7 @@ export class ConstCellVertex<A> extends CellVertex<A> {
     }
 }
 
-export class ListenerVertex<A> extends Vertex {
+export class ListenerVertex<A> extends _Vertex {
     constructor(
         readonly source: StreamVertex<A>,
         readonly weak: boolean,
@@ -319,7 +319,7 @@ export class ListenerVertex<A> extends Vertex {
     }
 }
 
-export class ProcessVertex<A> extends Vertex {
+export class ProcessVertex<A> extends _Vertex {
     constructor(
         readonly source: StreamVertex<A>,
         private readonly h: (a: A) => void,

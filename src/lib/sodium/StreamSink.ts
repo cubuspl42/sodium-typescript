@@ -12,7 +12,7 @@ export class StreamSink<A> extends Stream<A> {
     }
 
     send(a: A): void {
-        const vertex = this.vertex as StreamSinkVertex<A>;
+        const vertex = this._vertex as StreamSinkVertex<A>;
         vertex.fire(a);
     }
 }

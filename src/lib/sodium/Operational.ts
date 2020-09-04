@@ -47,7 +47,7 @@ export class Operational {
      * that do not allow the caller to detect the cell updates.
      */
     static updates<A>(c: Cell<A>): Stream<A> {
-        return new Stream(c.vertex);
+        return new Stream(c._vertex);
     }
 
     /**
@@ -62,7 +62,7 @@ export class Operational {
      */
     static value<A>(c: Cell<A>): Stream<A> {
         return Transaction.run((t) => {
-            const vertex = new ValueVertex(c.vertex);
+            const vertex = new ValueVertex(c._vertex);
             t.addRoot(vertex);
             return new Stream(vertex);
         });

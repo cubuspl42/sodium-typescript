@@ -27,7 +27,7 @@ export class CellSink<A> extends Cell<A> {
      */
     send(a: A): void {
         Transaction.run((t) => {
-            const vertex = this.vertex as CellSinkVertex<A>;
+            const vertex = this._vertex as CellSinkVertex<A>;
             vertex.fire(a);
             vertex.processed = true;
             t.addRoot(vertex);
