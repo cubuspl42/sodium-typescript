@@ -307,8 +307,12 @@ class SwitchCVertex<A> extends CellVertex<A> {
         super.initialize();
 
         this.cca.addDependent(this);
-        const ca = this.cca.oldValue;
-        ca._vertex.addDependent(this);
+
+        const oca = this.cca.oldValue._vertex;
+        const nca = this.cca.newValue?._vertex;
+        const ca = nca ?? oca;
+
+        ca.addDependent(this);
     }
 
     uninitialize(): void {
@@ -321,7 +325,7 @@ class SwitchCVertex<A> extends CellVertex<A> {
     }
 
     buildVisited(): boolean {
-        return this.cca.newValue?._vertex.visited === true;
+        return this.cca.visited || this.cca.newValue?._vertex.visited;
     }
 
     buildOldValue(): A {
@@ -371,7 +375,7 @@ class SwitchSVertex<A> extends StreamVertex<A> {
     }
 
     buildVisited(): boolean {
-        return this.csa.oldValue?._vertex.visited === true;
+        return this.csa.oldValue?._vertex.visited;
     }
 
     buildNewValue(): A | undefined {
