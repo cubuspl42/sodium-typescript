@@ -4,6 +4,7 @@ import { Lazy } from "./Lazy";
 import { HoldVertex, Stream } from "./Stream";
 import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
 import { NaObject } from "./NaObject";
+import { Transaction } from "../Lib";
 
 class CellMapVertex<A, B> extends CellVertex<B> {
     constructor(
@@ -343,7 +344,12 @@ class SwitchCVertex<A> extends CellVertex<A> {
         }
     }
 
-    postprocess(): void {
+    process(t: Transaction) {
+        super.process(t);
+        this.postprocess();
+    }
+
+    private postprocess(): void {
         const oca = this.cca.oldValue._vertex;
         const nca = this.cca.newValue?._vertex;
 
@@ -383,7 +389,12 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         return osa.newValue;
     }
 
-    postprocess(): void {
+    process(t: Transaction) {
+        super.process(t);
+        this.postprocess();
+    }
+
+    private postprocess(): void {
         const osa = this.csa.oldValue._vertex;
         const nsa = this.csa.newValue?._vertex;
 

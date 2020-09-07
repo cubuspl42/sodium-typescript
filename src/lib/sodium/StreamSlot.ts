@@ -72,7 +72,9 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
             signal._vertex.addDependent(this);
         }
 
-        Transaction.post(() => {
+        const t = Transaction.currentTransaction!;
+
+        t.resetEnqueue(() => {
             this.newSignals.forEach((signal) => {
                 this.signals.add(signal);
             });

@@ -42,8 +42,7 @@ export abstract class _Vertex implements Vertex {
     private _visited?: boolean = undefined;
 
     get visited(): boolean {
-        const visited = this._visited ?? this.buildVisited();
-        return visited;
+        return this._visited ?? this.buildVisited();
     }
 
     get visitedRaw(): boolean {
@@ -58,6 +57,8 @@ export abstract class _Vertex implements Vertex {
 
     protected initialize(): void {
         this.extraDependencies.forEach((d) => (d as _Vertex).incRefCount());
+        const t = Transaction.currentTransaction!;
+        t.resetEnqueue(() => this.reset());
     }
 
     protected uninitialize(): void {
@@ -65,12 +66,10 @@ export abstract class _Vertex implements Vertex {
     }
 
     process(t: Transaction): void {
+        t.resetEnqueue(() => this.reset());
     }
 
-    postprocess(): void {
-    }
-
-    update(): void {
+    reset(): void {
         this._visited = false;
     }
 
@@ -123,7 +122,11 @@ export abstract class StreamVertex<A> extends _Vertex {
         );
     }
 
-    _newValue?: A;
+    private _newValue?: A;
+
+    get hasNewValue(): boolean {
+        return this._newValue !== undefined;
+    }
 
     get newValue(): A | undefined {
         const visited = this.visited;
@@ -146,18 +149,19 @@ export abstract class StreamVertex<A> extends _Vertex {
         }
     }
 
-    process(): void {
+    process(t: Transaction): void {
         this.newValue;
+        super.process(t);
     }
 
     buildNewValue(): A | undefined {
         return undefined;
     }
 
-    update(): void {
+    reset(): void {
         this._newValue = undefined;
         this.processed = false;
-        super.update();
+        super.reset();
     }
 
     addDependent(vertex: _Vertex, weak?: boolean): void {
@@ -168,6 +172,10 @@ export abstract class StreamVertex<A> extends _Vertex {
     }
 
     removeDependent(vertex: _Vertex, weak?: boolean) {
+        if (this.refCount() === 0) {
+            return;
+        }
+
         const wasRemoved = this.dependents.delete(vertex);
 
         if (!wasRemoved) {
@@ -179,25 +187,36 @@ export abstract class StreamVertex<A> extends _Vertex {
         }
     }
 
+    protected initialize() {
+        super.initialize();
+    }
+
     describe_(): string {
         return `, processed: ${this.processed}, new: ${this.newValue}`;
     }
 }
 
 export class StreamSinkVertex<A> extends StreamVertex<A> {
+    _firedValue: A | undefined;
+
     buildNewValue(): A | undefined {
-        return undefined;
+        return this._firedValue;
     }
 
     fire(a: A) {
         Transaction.run((t) => {
-            this._newValue = a;
+            this._firedValue = a;
             t.addRoot(this);
         });
     }
 
     buildVisited(): boolean {
         return false;
+    }
+
+    reset() {
+        this._firedValue = undefined;
+        super.reset();
     }
 }
 
@@ -248,9 +267,19 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
         return undefined;
     }
 
+    process(t: Transaction) {
+        t.updateEnqueue(() => this.update());
+        super.process(t);
+    }
+
+    protected initialize() {
+        const t = Transaction.currentTransaction!;
+        t.updateEnqueue(() => this.update());
+        super.initialize();
+    }
+
     update() {
         this._oldValue = this.newValue ?? this.oldValue;
-        super.update();
     }
 
     describe_(): string {
@@ -259,12 +288,23 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
 }
 
 export class CellSinkVertex<A> extends CellVertex<A> {
+    _firedValue: A | undefined;
+
     fire(a: A): void {
-        this._newValue = a;
+        this._firedValue = a;
+    }
+
+    buildNewValue(): A | undefined {
+        return this._firedValue;
     }
 
     buildVisited(): boolean {
         return false;
+    }
+
+    reset() {
+        this._firedValue = undefined;
+        super.reset();
     }
 }
 
@@ -274,9 +314,6 @@ export class ConstCellVertex<A> extends CellVertex<A> {
         this._oldValue = initValue;
         this._typeName = this.typeName ?? typeName(initValue);
         this.processed = true;
-    }
-
-    update() {
     }
 
     describe_(): string {
@@ -302,20 +339,23 @@ export class ListenerVertex<A> extends _Vertex {
     }
 
     initialize(): void {
+        super.initialize();
         this.source.addDependent(this, this.weak);
     }
 
     uninitialize(): void {
         this.source.removeDependent(this, this.weak);
+        super.uninitialize();
     }
 
     process(t: Transaction): void {
         const a = this.source.newValue;
         if (a !== undefined) {
-            t.postEnqueue(() => {
+            t.effectEnqueue(() => {
                 this.h(a);
             });
         }
+        super.process(t);
     }
 }
 

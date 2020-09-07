@@ -1,4 +1,4 @@
-import { _Vertex } from './Vertex';
+import { _Vertex, StreamVertex } from './Vertex';
 
 let enableDebugFlag = false;
 
@@ -69,7 +69,11 @@ export class Transaction {
 
     private static visited = new Set_<_Vertex>();
 
-    private postQueue: Array<() => void> = [];
+    private effectQueue: Array<() => void> = [];
+
+    private updateQueue: Array<() => void> = [];
+
+    private resetQueue: Array<() => void> = [];
 
     constructor() {
     }
@@ -82,8 +86,16 @@ export class Transaction {
         _visit(Transaction.visited, v);
     }
 
-    postEnqueue(h: () => void): void {
-        this.postQueue.push(h);
+    effectEnqueue(h: () => void): void {
+        this.effectQueue.push(h);
+    }
+
+    updateEnqueue(h: () => void): void {
+        this.updateQueue.push(h);
+    }
+
+    resetEnqueue(h: () => void): void {
+        this.resetQueue.push(h);
     }
 
     close(): void {
@@ -95,6 +107,13 @@ export class Transaction {
             return Transaction.visited;
         }
 
+        const vertexAll = _Vertex.all;
+
+        const vNewValue = _Vertex.all.find((v) => v instanceof StreamVertex && v.hasNewValue);
+        if (vNewValue !== undefined) {
+            throw new Error("Some vertices have new value at the start of transaction");
+        }
+
         const visited = dfs(this.roots);
 
         Transaction.visitedVerticesCount = Math.max(visited.size, Transaction.visitedVerticesCount);
@@ -103,19 +122,22 @@ export class Transaction {
 
         visited.forEach((v) => {
             v.process(this);
-            //  v.postprocess(); (can it be called here?)
         });
 
-        visited.forEach((v) => {
-            v.postprocess();
-        });
-
-        while(this.postQueue.length > 0) {
-           const h =  this.postQueue.shift();
-           h();
+        while (this.effectQueue.length > 0) {
+            const h = this.effectQueue.shift();
+            h();
         }
 
-        visited.forEach((l) => l.update());
+        while (this.updateQueue.length > 0) {
+            const h = this.updateQueue.shift();
+            h();
+        }
+
+        while (this.resetQueue.length > 0) {
+            const h = this.resetQueue.shift();
+            h();
+        }
 
         Transaction.visited.clear();
 
@@ -145,6 +167,11 @@ export class Transaction {
         if (!ct) {
             log(`Transaction start`);
 
+            const vVisited = _Vertex.all.find((v) => v.visitedRaw);
+            if (vVisited !== undefined) {
+                throw new Error("Some vertices are visited at the start of transaction");
+            }
+
             const t = new Transaction();
 
             this.currentTransaction = t;
@@ -166,6 +193,6 @@ export class Transaction {
     }
 
     public static post<A>(h: () => void): void {
-        Transaction.currentTransaction!.postEnqueue(h);
+        Transaction.currentTransaction!.effectEnqueue(h);
     }
 }
