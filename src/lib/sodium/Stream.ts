@@ -658,18 +658,20 @@ export class Stream<A> implements NaObject {
     }
 
     listen(h: (a: A) => void, weak?: boolean): () => void {
-        const vertex = new ListenerVertex(this._vertex, weak ?? false, h);
+        return Transaction.run(() => {
+            const vertex = new ListenerVertex(this._vertex, weak ?? false, h);
 
-        vertex.incRefCount();
+            vertex.incRefCount();
 
-        const na = this._vertex.newValue;
-        if (na !== undefined) {
-            h(na);
-        }
+            const na = this._vertex.newValue;
+            if (na !== undefined) {
+                h(na);
+            }
 
-        return () => {
-            vertex.decRefCount();
-        };
+            return () => {
+                vertex.decRefCount();
+            };
+        });
     }
 
 
