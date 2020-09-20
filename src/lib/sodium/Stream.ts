@@ -154,8 +154,9 @@ class FilterVertex<A> extends StreamVertex<A> {
     constructor(
         source: StreamVertex<A>,
         f: (a: A) => boolean,
+        extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
-        super();
+        super(extraDependencies);
 
         this.source = source;
         this.f = f;
@@ -478,8 +479,10 @@ export class Stream<A> implements NaObject {
     /**
      * Return a stream that only outputs events for which the predicate returns true.
      */
-    filter(f: (a: A) => boolean): Stream<A> {
-        return new Stream(new FilterVertex(this._vertex, f));
+    filter(f: ((a: A) => boolean) | Lambda1<A, boolean>): Stream<A> {
+        const fn = Lambda1_toFunction(f);
+        const deps = Lambda1_deps(f);
+        return new Stream(new FilterVertex(this._vertex, fn, deps));
     }
 
     /**
