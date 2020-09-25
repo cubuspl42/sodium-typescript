@@ -1,4 +1,4 @@
-import { CellVertex, ConstCellVertex, ListenerVertex, StreamVertex, Vertex } from "./Vertex";
+import { CellVertex, ConstCellVertex, ListenerVertex, none, None, StreamVertex, Vertex } from "./Vertex";
 
 import { Lazy } from "./Lazy";
 import { HoldVertex, Stream } from "./Stream";
@@ -24,7 +24,6 @@ class CellMapVertex<A, B> extends CellVertex<B> {
 
     initialize() {
         super.initialize();
-        const f = this.f;
         this.source.addDependent(this);
     }
 
@@ -42,10 +41,10 @@ class CellMapVertex<A, B> extends CellVertex<B> {
         return f(this.source.oldValue);
     }
 
-    buildNewValue(): B | undefined {
+    buildNewValue(): B | None {
         const f = this.f;
         const na = this.source.newValue;
-        const nb = na !== undefined ? f(na) : undefined;
+        const nb = None.map(na, f);
         return nb;
     }
 
@@ -86,16 +85,16 @@ class CellApplyVertex<A, B> extends CellVertex<B> {
         return f(this.ca.oldValue);
     }
 
-    buildNewValue(): B | undefined {
+    buildNewValue(): B | None {
         const nf = this.cf.newValue;
         const na = this.ca.newValue;
 
-        if (nf !== undefined || na !== undefined) {
-            const f = nf ?? this.cf.oldValue;
-            const a = na ?? this.ca.oldValue;
+        if (!(nf instanceof None) || !(na instanceof None)) {
+            const f = None.getOrElse(nf, () => this.cf.oldValue);
+            const a = None.getOrElse(na, () => this.ca.oldValue);
             return f(a);
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -138,17 +137,17 @@ class CellLiftVertex<A, B, C> extends CellVertex<C> {
         return f(this.ca.oldValue, this.cb.oldValue);
     }
 
-    buildNewValue(): C | undefined {
+    buildNewValue(): C | None {
         const na = this.ca.newValue;
         const nb = this.cb.newValue;
 
-        if (na !== undefined || nb !== undefined) {
+        if (!(na instanceof None) || !(nb instanceof None)) {
             const f = this.f;
-            const a = na ?? this.ca.oldValue;
-            const b = nb ?? this.cb.oldValue;
+            const a = None.getOrElse(na, () => this.ca.oldValue);
+            const b = None.getOrElse(nb, () => this.cb.oldValue);
             return f(a, b);
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -227,7 +226,7 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         );
     }
 
-    buildNewValue(): G | undefined {
+    buildNewValue(): G | None {
         const na = this.ca?.newValue;
         const nb = this.cb?.newValue;
         const nc = this.cc?.newValue;
@@ -236,25 +235,25 @@ class CellLift6Vertex<A, B, C, D, E, F, G> extends CellVertex<G> {
         const nf = this.cf?.newValue;
 
         if (
-            na !== undefined ||
-            nb !== undefined ||
-            nc !== undefined ||
-            nd !== undefined ||
-            ne !== undefined ||
-            nf !== undefined
+            !(na instanceof None) ||
+            !(nb instanceof None) ||
+            !(nc instanceof None) ||
+            !(nd instanceof None) ||
+            !(ne instanceof None) ||
+            !(nf instanceof None)
         ) {
-            const a = na ?? this.ca?.oldValue;
-            const b = nb ?? this.cb?.oldValue;
-            const c = nc ?? this.cc?.oldValue;
-            const d = nd ?? this.cd?.oldValue;
-            const e = ne ?? this.ce?.oldValue;
-            const f = nf ?? this.cf?.oldValue;
+            const a = None.getOrElse(na, () => this.ca.oldValue);
+            const b = None.getOrElse(nb, () => this.cb.oldValue);
+            const c = None.getOrElse(nc, () => this.cc.oldValue);
+            const d = None.getOrElse(nd, () => this.cd.oldValue);
+            const e = None.getOrElse(ne, () => this.ce.oldValue);
+            const f = None.getOrElse(nf, () => this.cf.oldValue);
 
             const fn = this.f;
 
             return fn(a, b, c, d, e, f);
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -287,12 +286,12 @@ class CellLiftArrayVertex<A> extends CellVertex<A[]> {
         return this.caa.map(a => a._vertex.oldValue);
     }
 
-    buildNewValue(): A[] | undefined {
-        if (this.caa.some((ca) => ca._vertex.newValue !== undefined)) {
-            const na = this.caa.map((ca) => ca._vertex.newValue ?? ca._vertex.oldValue);
+    buildNewValue(): A[] | None {
+        if (this.caa.some((ca) => !(ca._vertex.newValue instanceof None))) {
+            const na = this.caa.map((ca) => None.getOrElse(ca._vertex.newValue, () => ca._vertex.oldValue));
             return na;
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -311,8 +310,8 @@ class SwitchCVertex<A> extends CellVertex<A> {
         this.cca.addDependent(this);
 
         const oca = this.cca.oldValue._vertex;
-        const nca = this.cca.newValue?._vertex;
-        const ca = nca ?? oca;
+        const nca = None.map(this.cca.newValue, (na) => na._vertex);
+        const ca = None.getOrElse(nca, () => oca);
 
         ca.addDependent(this);
     }
@@ -327,7 +326,8 @@ class SwitchCVertex<A> extends CellVertex<A> {
     }
 
     buildVisited(): boolean {
-        return this.cca.visited || this.cca.newValue?._vertex.visited;
+        const ncaVisited = None.map(this.cca.newValue, (na) => na._vertex.visited);
+        return this.cca.visited || ncaVisited === true;
     }
 
     buildOldValue(): A {
@@ -335,11 +335,12 @@ class SwitchCVertex<A> extends CellVertex<A> {
         return ca._vertex.oldValue;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const oca = this.cca.oldValue._vertex;
-        const nca = this.cca.newValue?._vertex;
-        if (nca !== undefined) {
-            return nca.newValue ?? nca.oldValue;
+        const nca = None.map(this.cca.newValue, (na) => na._vertex);
+
+        if (!(nca instanceof None)) {
+            return None.getOrElse(nca.newValue, () => nca.oldValue);
         } else {
             return oca.newValue;
         }
@@ -352,9 +353,9 @@ class SwitchCVertex<A> extends CellVertex<A> {
 
     private postprocess(): void {
         const oca = this.cca.oldValue._vertex;
-        const nca = this.cca.newValue?._vertex;
+        const nca = None.map(this.cca.newValue, (na) => na._vertex);
 
-        if (nca !== undefined && this.refCount() > 0) {
+        if (!(nca instanceof None) && this.refCount() > 0) {
             oca.removeDependent(this);
             nca.addDependent(this);
         }
@@ -385,7 +386,7 @@ class SwitchSVertex<A> extends StreamVertex<A> {
         return this.csa.oldValue?._vertex.visited;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const osa = this.csa.oldValue._vertex;
         return osa.newValue;
     }
@@ -397,12 +398,12 @@ class SwitchSVertex<A> extends StreamVertex<A> {
 
     private postprocess(): void {
         const osa = this.csa.oldValue._vertex;
-        const nsa = this.csa.newValue?._vertex;
+        const nsa = None.map(this.csa.newValue, (na) => na._vertex);
 
         // This is done in `postprocess`, not `buildNewValue`, because evaluating `csa.newValue` in `buildNewValue`
         // doesn't work when the new value of `csa` depends on the new value of this stream (which is not impossible).
         // TODO: Check how Sodium master handles this
-        if (nsa !== undefined && this.refCount() > 0) {
+        if (!(nsa instanceof None) && this.refCount() > 0) {
             osa.removeDependent(this);
             nsa.addDependent(this);
         }
@@ -441,14 +442,14 @@ class CellCalmVertex<A> extends CellVertex<A> {
         return this.source.oldValue;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const eq = this.eq;
         const oa = this.oldValue;
         const na = this.source.newValue;
-        if (!(eq(oa, na))) {
+        if (!(na instanceof None) && !(eq(oa, na))) {
             return na;
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -658,7 +659,7 @@ export class Cell<A> implements NaObject {
         // TODO: Figure out when ref count should be increased (loops...)
         vertex.incRefCount();
 
-        const na = this._vertex.newValue ?? this._vertex.oldValue;
+        const na = None.getOrElse(this._vertex.newValue, () => this._vertex.oldValue);
         h(na);
 
         return () => {

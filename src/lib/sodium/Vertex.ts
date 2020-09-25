@@ -10,6 +10,18 @@ export function getTotalRegistrations(): number {
 
 let nextId = 0;
 
+export class None {
+    static getOrElse<A>(a: A | None, f: () => A): A {
+        return a instanceof None ? f() : a;
+    }
+
+    static map<A, B>(a: A | None, f: (a: A) => B): B | None {
+        return a instanceof None ? none : f(a);
+    }
+}
+
+export const none = new None();
+
 export interface Vertex {
 
 }
@@ -122,30 +134,27 @@ export abstract class StreamVertex<A> extends _Vertex {
         );
     }
 
-    private _newValue?: A;
+    private _newValue: A | None = none;
 
     get hasNewValue(): boolean {
-        return this._newValue !== undefined;
+        return this._newValue !== none;
     }
 
-    get newValue(): A | undefined {
+    get newValue(): A | None {
         const visited = this.visited;
         // const visited = true;
         // TODO: Re-enable the visited vertex optimization
         // Disabling because of switchC on cell loop birth-visited issue
-        if (this._newValue !== undefined) {
+        if (!(this._newValue instanceof None)) {
             return this._newValue;
         } else if (visited && !this.processed) {
             const value = this.buildNewValue();
-            if (value === null) {
-                throw new Error("Stream/Cell new value cannot be null");
-            }
             this._newValue = value;
             this._typeName = this.typeName ?? typeName(value);
             this.processed = true;
             return value;
         } else {
-            return undefined;
+            return none;
         }
     }
 
@@ -154,12 +163,12 @@ export abstract class StreamVertex<A> extends _Vertex {
         super.process(t);
     }
 
-    buildNewValue(): A | undefined {
-        return undefined;
+    buildNewValue(): A | None {
+        return none;
     }
 
     reset(): void {
-        this._newValue = undefined;
+        this._newValue = none;
         this.processed = false;
         super.reset();
     }
@@ -197,9 +206,9 @@ export abstract class StreamVertex<A> extends _Vertex {
 }
 
 export class StreamSinkVertex<A> extends StreamVertex<A> {
-    _firedValue: A | undefined;
+    _firedValue: A | None;
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         return this._firedValue;
     }
 
@@ -215,7 +224,7 @@ export class StreamSinkVertex<A> extends StreamVertex<A> {
     }
 
     reset() {
-        this._firedValue = undefined;
+        this._firedValue = none;
         super.reset();
     }
 }
@@ -227,7 +236,7 @@ function typeName(a: any) {
         }
     }
     const type = typeof a;
-    if (type === "object") {
+    if (type === "object" && a !== null) {
         return a.constructor.name;
     } else {
         return type;
@@ -235,22 +244,21 @@ function typeName(a: any) {
 }
 
 export abstract class CellVertex<A> extends StreamVertex<A> {
-    _oldValue?: A;
+    _oldValue: A | None = none;
 
     get typeName(): string {
         return this._typeName;
     }
 
     get oldValue(): A {
-        if (this._oldValue === undefined) {
+        if (this._oldValue instanceof None) {
             const a = this.buildOldValue();
-            if (a === undefined || a === null) {
-                throw new Error("Cell value cannot be undefined/null");
-            }
             this._typeName = this.typeName ?? typeName(a);
             this._oldValue = a;
+            return a;
+        } else {
+            return this._oldValue;
         }
-        return this._oldValue!;
     }
 
     constructor(
@@ -263,8 +271,8 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
         throw new Error("buildOldValue implementation is not provided");
     }
 
-    buildNewValue(): A | undefined {
-        return undefined;
+    buildNewValue(): A | None {
+        return none;
     }
 
     process(t: Transaction) {
@@ -279,7 +287,7 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
     }
 
     update() {
-        this._oldValue = this.newValue ?? this.oldValue;
+        this._oldValue = None.getOrElse(this.newValue, () => this.oldValue);
     }
 
     describe_(): string {
@@ -288,13 +296,13 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
 }
 
 export class CellSinkVertex<A> extends CellVertex<A> {
-    _firedValue: A | undefined;
+    _firedValue: A | None = none;
 
     fire(a: A): void {
         this._firedValue = a;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         return this._firedValue;
     }
 
@@ -303,7 +311,7 @@ export class CellSinkVertex<A> extends CellVertex<A> {
     }
 
     reset() {
-        this._firedValue = undefined;
+        this._firedValue = none;
         super.reset();
     }
 }
@@ -350,7 +358,7 @@ export class ListenerVertex<A> extends _Vertex {
 
     process(t: Transaction): void {
         const a = this.source.newValue;
-        if (a !== undefined) {
+        if (!(a instanceof None)) {
             t.effectEnqueue(() => {
                 this.h(a);
             });
@@ -381,7 +389,7 @@ export class ProcessVertex<A> extends _Vertex {
 
     process(t: Transaction): void {
         const a = this.source.newValue;
-        if (a !== undefined) {
+        if (!(a instanceof None)) {
             this.h(a);
         }
     }

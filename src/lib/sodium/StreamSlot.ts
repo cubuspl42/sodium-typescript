@@ -1,5 +1,5 @@
 import { Stream } from "./Stream";
-import { StreamVertex } from './Vertex';
+import { none, None, StreamVertex } from './Vertex';
 import { Transaction } from "./Transaction";
 import { Unit } from "./Unit";
 
@@ -22,6 +22,10 @@ export class Sets {
 
     static mapNotUndefined<A, B>(s: ReadonlySet<A>, f: (a: A) => B | undefined): ReadonlySet<B> {
         return new Set(Array.from(s).map(f).filter((b) => b !== undefined));
+    }
+
+    static mapNotNone<A, B>(s: ReadonlySet<A>, f: (a: A) => B | None): ReadonlySet<B> {
+        return new Set(Array.from(s).map(f).filter((b) => !(b instanceof None))) as ReadonlySet<B>;
     }
 }
 
@@ -76,13 +80,13 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
         return false;
     }
 
-    buildNewValue(): A | undefined {
-        const nas = Sets.mapNotUndefined(this.signals, (entry) => {
+    buildNewValue(): A | None {
+        const nas = Sets.mapNotNone(this.signals, (entry) => {
             const { signal } = entry;
             return signal.newValue;
         });
         if (nas.size === 0) {
-            return undefined;
+            return none;
         } else if (nas.size === 1) {
             const na = Sets.first(nas);
             return na;
@@ -96,7 +100,7 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
         super.process(t);
         t.resetEnqueue(() => {
             this.signals.forEach((e) => {
-                if (e.sDisconnect.newValue !== undefined) {
+                if (!(e.sDisconnect.newValue instanceof None)) {
                     console.log("StreamSlot disconnecting");
 
                     e.signal.removeDependent(this);

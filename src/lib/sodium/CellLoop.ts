@@ -1,6 +1,6 @@
 import { Cell } from "./Cell";
 import { Transaction } from "./Transaction";
-import { CellVertex } from "./Vertex";
+import { CellVertex, None } from "./Vertex";
 
 export interface CellLoopOptions {
     weak: boolean;
@@ -46,7 +46,7 @@ class CellLoopVertex<A> extends CellVertex<A> {
         return source.oldValue;
     }
 
-    buildNewValue(): A {
+    buildNewValue(): A | None {
         const source = this.source;
         if (source === undefined) {
             throw new Error("CellLoop hasn't been looped yet");

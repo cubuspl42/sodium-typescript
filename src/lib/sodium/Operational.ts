@@ -1,7 +1,7 @@
 import { Stream } from "./Stream";
 import { Cell } from "./Cell";
 import { Transaction } from "./Transaction";
-import { CellVertex, StreamVertex } from "./Vertex";
+import { CellVertex, none, None, StreamVertex } from "./Vertex";
 
 class ValueVertex<A> extends StreamVertex<A> {
     private isInitialized = false;
@@ -27,13 +27,13 @@ class ValueVertex<A> extends StreamVertex<A> {
         return this.source.visited;
     }
 
-    buildNewValue(): A | undefined {
-        const oa = this.isInitialized ? undefined : this.source.oldValue;
+    buildNewValue(): A | None {
+        const oa = this.isInitialized ? none : this.source.oldValue;
         const na = this.source.newValue;
 
         this.isInitialized = true;
 
-        return na ?? oa;
+        return None.getOrElse(na, () => oa);
     }
 }
 

@@ -1,4 +1,4 @@
-import { CellVertex, ListenerVertex, ProcessVertex, StreamVertex, Vertex } from "./Vertex";
+import { CellVertex, ListenerVertex, none, None, ProcessVertex, StreamVertex, Vertex } from "./Vertex";
 import { Transaction } from "./Transaction";
 import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
@@ -40,11 +40,11 @@ class SnapshotVertex<A, B, C> extends StreamVertex<C> {
         return this.sa.visited;
     }
 
-    buildNewValue(): C | undefined {
+    buildNewValue(): C | None {
         const f = this.f;
         const na = this.sa.newValue;
         const b = this.cb.oldValue;
-        const nb = na !== undefined ? f(na, b) : undefined;
+        const nb = None.map(na, (na) => f(na, b));
         return nb;
     }
 
@@ -94,10 +94,10 @@ class Snapshot4Vertex<A, B, C, D, E> extends StreamVertex<E> {
         return this.sa.visited;
     }
 
-    buildNewValue(): E | undefined {
+    buildNewValue(): E | None {
         const na = this.sa.newValue;
 
-        if (na === undefined) return undefined;
+        if (na instanceof None) return none;
 
         const f = this.f;
         const b = this.cb.oldValue;
@@ -144,7 +144,7 @@ export class HoldVertex<A> extends CellVertex<A> {
         return na;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const na = this.steps.newValue;
         return na;
     }
@@ -179,16 +179,16 @@ class FilterVertex<A> extends StreamVertex<A> {
         return this.source.visited;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const na = this.source.newValue;
         const f = this.f;
 
-        if (na === undefined) return undefined;
+        if (na instanceof None) return none;
 
         if (f(na)) {
             return na;
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -222,10 +222,10 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
         return this.source.visited;
     }
 
-    buildNewValue(): B | undefined {
+    buildNewValue(): B | None {
         const f = this.f;
         const na = this.source.newValue;
-        const nb = na !== undefined ? f(na) : undefined;
+        const nb = None.map(na, f);
         return nb;
     }
 }
@@ -234,19 +234,25 @@ class StreamMap2Vertex<A, B, C> extends StreamVertex<C> {
     constructor(
         source1: StreamVertex<A>,
         source2: StreamVertex<B>,
-        f: (a: A, b: B) => C,
+        fa: (a: A) => C,
+        fb: (b: B) => C,
+        fab: (a: A, b: B) => C,
         extraDependencies?: Array<Stream<any> | Cell<any>>,
     ) {
         super(extraDependencies);
 
         this.source1 = source1;
         this.source2 = source2;
-        this.f = f;
+        this.fa = fa;
+        this.fb = fb;
+        this.fab = fab;
     }
 
     private readonly source1: StreamVertex<A>;
     private readonly source2: StreamVertex<B>;
-    private readonly f: (a: A, b: B) => C;
+    private readonly fa: (a: A) => C;
+    private readonly fb: (b: B) => C;
+    private readonly fab: (a: A, b: B) => C;
 
     initialize(): void {
         super.initialize();
@@ -264,12 +270,23 @@ class StreamMap2Vertex<A, B, C> extends StreamVertex<C> {
         return this.source1.visited || this.source2.visited;
     }
 
-    buildNewValue(): C | undefined {
-        const f = this.f;
+    buildNewValue(): C | None {
+        const fa = this.fa;
+        const fb = this.fb;
+        const fab = this.fab;
+
         const na = this.source1.newValue;
         const nb = this.source2.newValue;
-        const nc = na !== undefined || nb !== undefined ? f(na, nb) : undefined;
-        return nc;
+
+        if (!(na instanceof None) && !(nb instanceof None)) {
+            return fab(na, nb);
+        } else if (!(na instanceof None)) {
+            return fa(na);
+        } else if (!(nb instanceof None)) {
+            return fb(nb);
+        } else {
+            return none;
+        }
     }
 }
 
@@ -308,19 +325,19 @@ class StreamMergeVertex<A> extends StreamVertex<A> {
         return this.s0.visited || this.s1.visited;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const f = this.f;
         const n0 = this.s0.newValue;
         const n1 = this.s1.newValue;
 
-        if (n0 !== undefined && n1 !== undefined) {
+        if (!(n0 instanceof None) && !(n1 instanceof None)) {
             return f(n0, n1);
-        } else if (n0 !== undefined) {
+        } else if (!(n0 instanceof None)) {
             return n0;
-        } else if (n1 !== undefined) {
+        } else if (!(n1 instanceof None)) {
             return n1;
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -355,10 +372,10 @@ class StreamOrElseVertex<A> extends StreamVertex<A> {
         return this.s0.visited || this.s1.visited;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const n0 = this.s0.newValue;
 
-        if (n0 !== undefined) {
+        if (!(n0 instanceof None)) {
             return n0;
         } else {
             const n1 = this.s1.newValue;
@@ -392,14 +409,14 @@ class StreamFirstOfVertex<A> extends StreamVertex<A> {
         return this.streams.some((s) => s._vertex.visited);
     }
 
-    buildNewValue(): A | undefined {
-        const s = this.streams.find((s) => s._vertex.newValue !== undefined);
+    buildNewValue(): A | None {
+        const s = this.streams.find((s) => !(s._vertex.newValue instanceof None));
         const na = s?._vertex.newValue;
 
-        if (na !== undefined) {
+        if (!(na instanceof None)) {
             return na;
         } else {
-            return undefined;
+            return none;
         }
     }
 }
@@ -431,10 +448,10 @@ class StreamOnceVertex<A> extends StreamVertex<A> {
         return this.source.visited;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         const na = this.source.newValue;
 
-        if (na === undefined || this.hasFired) return undefined;
+        if (na instanceof None || this.hasFired) return none;
 
         this.hasFired = true;
         this.source.removeDependent(this);
@@ -711,7 +728,7 @@ export class Stream<A> implements NaObject {
             vertex.incRefCount();
 
             const na = this._vertex.newValue;
-            if (na !== undefined) {
+            if (!(na instanceof None)) {
                 h(na);
             }
 
@@ -741,11 +758,18 @@ export class Stream<A> implements NaObject {
     static map2<A, B, C>(
         sa: Stream<A>,
         sb: Stream<B>,
-        f: ((a: A | null, b: B | null) => C) | Lambda2<A, B, C>,
+        fa: ((a: A) => C) | Lambda1<A, C>,
+        fb: ((a: B) => C) | Lambda1<B, C>,
+        fab: ((a: A, b: B) => C) | Lambda2<A, B, C>,
     ): Stream<C> {
-        const fn = Lambda2_toFunction(f);
-        const deps = Lambda2_deps(f);
-        return new Stream(new StreamMap2Vertex(sa._vertex, sb._vertex, fn, deps));
+        const fnA = Lambda1_toFunction(fa);
+        const depsA = Lambda1_deps(fa);
+        const fnB = Lambda1_toFunction(fb);
+        const depsB = Lambda1_deps(fb);
+        const fnAb = Lambda2_toFunction(fab);
+        const depsAb = Lambda2_deps(fab);
+        const deps = [...depsA, ...depsB, ...depsAb];
+        return new Stream(new StreamMap2Vertex(sa._vertex, sb._vertex, fnA, fnB, fnAb, deps));
     }
 }
 
@@ -771,11 +795,11 @@ export class StreamLoopVertex<A> extends StreamVertex<A> {
         return source.visited;
     }
 
-    buildNewValue(): A | undefined {
+    buildNewValue(): A | None {
         if (this.source === undefined) {
             throw new Error("Cannot build the new value of an unlooped StreamLoop");
         } else {
-            return this.source!.newValue;
+            return this.source.newValue;
         }
     }
 
