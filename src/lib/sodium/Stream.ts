@@ -4,7 +4,7 @@ import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import { CellLoop } from "./CellLoop";
-import { Lambda1, Lambda1_deps, Lambda1_toFunction, Lambda2 } from "./Lambda";
+import { Lambda1, Lambda1_deps, Lambda1_toFunction, Lambda2, Lambda2_deps, Lambda2_toFunction } from "./Lambda";
 import { NaObject } from "./NaObject";
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
@@ -229,6 +229,50 @@ class StreamMapVertex<A, B> extends StreamVertex<B> {
         return nb;
     }
 }
+
+class StreamMap2Vertex<A, B, C> extends StreamVertex<C> {
+    constructor(
+        source1: StreamVertex<A>,
+        source2: StreamVertex<B>,
+        f: (a: A, b: B) => C,
+        extraDependencies?: Array<Stream<any> | Cell<any>>,
+    ) {
+        super(extraDependencies);
+
+        this.source1 = source1;
+        this.source2 = source2;
+        this.f = f;
+    }
+
+    private readonly source1: StreamVertex<A>;
+    private readonly source2: StreamVertex<B>;
+    private readonly f: (a: A, b: B) => C;
+
+    initialize(): void {
+        super.initialize();
+        this.source1.addDependent(this);
+        this.source2.addDependent(this);
+    }
+
+    uninitialize(): void {
+        this.source1.removeDependent(this);
+        this.source2.removeDependent(this);
+        super.uninitialize();
+    }
+
+    buildVisited(): boolean {
+        return this.source1.visited || this.source2.visited;
+    }
+
+    buildNewValue(): C | undefined {
+        const f = this.f;
+        const na = this.source1.newValue;
+        const nb = this.source2.newValue;
+        const nc = na !== undefined || nb !== undefined ? f(na, nb) : undefined;
+        return nc;
+    }
+}
+
 
 class StreamMergeVertex<A> extends StreamVertex<A> {
     constructor(
@@ -699,7 +743,9 @@ export class Stream<A> implements NaObject {
         sb: Stream<B>,
         f: ((a: A | null, b: B | null) => C) | Lambda2<A, B, C>,
     ): Stream<C> {
-        throw new Error("Unimplemented");
+        const fn = Lambda2_toFunction(f);
+        const deps = Lambda2_deps(f);
+        return new Stream(new StreamMap2Vertex(sa._vertex, sb._vertex, fn, deps));
     }
 }
 
