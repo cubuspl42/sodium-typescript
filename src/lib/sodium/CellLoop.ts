@@ -74,6 +74,13 @@ export class CellLoop<A> extends Cell<A> {
         super(undefined, undefined, new CellLoopVertex(options));
     }
 
+    static looped<A>(f: (c: Cell<A>) => Cell<A>): Cell<A> {
+        const loop = new CellLoop<A>();
+        const c = f(loop);
+        loop.loop(c);
+        return c;
+    }
+
     /**
      * Resolve the loop to specify what the CellLoop was a forward reference to. It
      * must be invoked inside the same transaction as the place where the CellLoop is used.

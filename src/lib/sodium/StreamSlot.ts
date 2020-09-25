@@ -92,10 +92,13 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
     }
 
     process(t: Transaction) {
+        console.log("Processing StreamSlot");
         super.process(t);
         t.resetEnqueue(() => {
             this.signals.forEach((e) => {
                 if (e.sDisconnect.newValue !== undefined) {
+                    console.log("StreamSlot disconnecting");
+
                     e.signal.removeDependent(this);
                     e.sDisconnect.removeDependent(this);
                     this.signals.delete(e);
@@ -121,6 +124,8 @@ class StreamSlotVertex<A> extends StreamVertex<A> {
                     this.signals.add(entry);
                 });
                 this.newSignals.clear();
+
+                console.log(`Number of signals: ${this.signals.size}`);
             });
         });
     }

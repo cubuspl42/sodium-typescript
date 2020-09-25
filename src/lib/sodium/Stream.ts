@@ -4,7 +4,7 @@ import { Cell } from "./Cell";
 import { Tuple2 } from "./Tuple2";
 import { Lazy } from "./Lazy";
 import { CellLoop } from "./CellLoop";
-import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
+import { Lambda1, Lambda1_deps, Lambda1_toFunction, Lambda2 } from "./Lambda";
 import { NaObject } from "./NaObject";
 
 class SnapshotVertex<A, B, C> extends StreamVertex<C> {
@@ -692,6 +692,14 @@ export class Stream<A> implements NaObject {
 
     static firstOf<A>(streams: Stream<A>[]): Stream<A> {
         return new Stream(new StreamFirstOfVertex<A>(streams));
+    }
+
+    static map2<A, B, C>(
+        sa: Stream<A>,
+        sb: Stream<B>,
+        f: ((a: A | null, b: B | null) => C) | Lambda2<A, B, C>,
+    ): Stream<C> {
+        throw new Error("Unimplemented");
     }
 }
 

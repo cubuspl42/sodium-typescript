@@ -4,7 +4,8 @@ import { Lazy } from "./Lazy";
 import { HoldVertex, Stream } from "./Stream";
 import { Lambda1, Lambda1_deps, Lambda1_toFunction } from "./Lambda";
 import { NaObject } from "./NaObject";
-import { Transaction } from "../Lib";
+import { CellLoop } from "./CellLoop";
+import { Transaction } from "./Transaction";
 
 class CellMapVertex<A, B> extends CellVertex<B> {
     constructor(
