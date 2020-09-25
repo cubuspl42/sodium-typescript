@@ -298,6 +298,11 @@ export abstract class CellVertex<A> extends StreamVertex<A> {
 export class CellSinkVertex<A> extends CellVertex<A> {
     _firedValue: A | None = none;
 
+    constructor(initValue: A) {
+        super();
+        this._oldValue = initValue;
+    }
+
     fire(a: A): void {
         this._firedValue = a;
     }

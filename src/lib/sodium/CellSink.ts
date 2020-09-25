@@ -15,7 +15,7 @@ export class CellSink<A> extends Cell<A> {
      * If the function is not supplied, then an exception will be thrown in this case.
      */
     constructor(initValue: A, f?: (l: A, r: A) => A) {
-        super(undefined, undefined, new CellSinkVertex<A>());
+        super(undefined, undefined, new CellSinkVertex<A>(initValue));
     }
 
     /**

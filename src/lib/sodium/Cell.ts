@@ -415,7 +415,7 @@ class CellCalmVertex<A> extends CellVertex<A> {
         source: CellVertex<A>,
         eq: (l: A, r: A) => boolean,
     ) {
-        super(undefined);
+        super();
 
         this.eq = eq;
         this.source = source;
