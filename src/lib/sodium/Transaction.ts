@@ -48,16 +48,16 @@ class Set_<A> {
     }
 }
 
-function _visit(set: Set_<_Vertex>, vertex: _Vertex): void {
+function _visit(processQueue: Array<_Vertex>, vertex: _Vertex): void {
     if (vertex.visitedRaw) return;
 
     vertex.markVisited();
 
     vertex.dependents?.forEach((v) => {
-        _visit(set, v);
+        _visit(processQueue, v);
     });
 
-    set.add(vertex);
+    processQueue.push(vertex);
 }
 
 let nextId = 0;
@@ -67,7 +67,7 @@ export class Transaction {
 
     private roots = new Set<_Vertex>();
 
-    private static visited = new Set_<_Vertex>();
+    private processQueue: Array<_Vertex> = [];
 
     private effectQueue: Array<() => void> = [];
 
@@ -83,7 +83,11 @@ export class Transaction {
     }
 
     visit(v: _Vertex): void {
-        _visit(Transaction.visited, v);
+        _visit(this.processQueue, v);
+    }
+
+    processEnqueue(v: _Vertex): void {
+        this.processQueue.push(v);
     }
 
     effectEnqueue(h: () => void): void {
@@ -100,11 +104,10 @@ export class Transaction {
 
     close(): void {
         // TODO: Handle in-transaction errors!
-        const dfs = (roots: Set<_Vertex>): Set_<_Vertex> => {
+        const dfs = (roots: Set<_Vertex>): void => {
             roots.forEach((v) => {
                 this.visit(v);
             });
-            return Transaction.visited;
         }
 
         const vertexAll = _Vertex.all;
@@ -114,15 +117,16 @@ export class Transaction {
             throw new Error("Some vertices have new value at the start of transaction");
         }
 
-        const visited = dfs(this.roots);
+        dfs(this.roots);
 
-        Transaction.visitedVerticesCount = Math.max(visited.size, Transaction.visitedVerticesCount);
+        Transaction.visitedVerticesCount = Math.max(this.processQueue.length, Transaction.visitedVerticesCount);
 
         this.roots.clear();
 
-        visited.forEach((v) => {
+        while (this.processQueue.length > 0) {
+            const v = this.processQueue.shift();
             v.process(this);
-        });
+        }
 
         while (this.effectQueue.length > 0) {
             const h = this.effectQueue.shift();
@@ -138,8 +142,6 @@ export class Transaction {
             const h = this.resetQueue.shift();
             h();
         }
-
-        Transaction.visited.clear();
 
         // Sodium order:
         // event processing

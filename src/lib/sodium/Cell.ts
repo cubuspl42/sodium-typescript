@@ -310,10 +310,7 @@ class SwitchCVertex<A> extends CellVertex<A> {
         this.cca.addDependent(this);
 
         const oca = this.cca.oldValue._vertex;
-        const nca = None.map(this.cca.newValue, (na) => na._vertex);
-        const ca = None.getOrElse(nca, () => oca);
-
-        ca.addDependent(this);
+        oca.addDependent(this);
     }
 
     uninitialize(): void {

@@ -70,7 +70,7 @@ export abstract class _Vertex implements Vertex {
     protected initialize(): void {
         this.extraDependencies.forEach((d) => (d as _Vertex).incRefCount());
         const t = Transaction.currentTransaction!;
-        t.resetEnqueue(() => this.reset());
+        t.processEnqueue(this);
     }
 
     protected uninitialize(): void {
